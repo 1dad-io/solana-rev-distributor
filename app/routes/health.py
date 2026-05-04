@@ -1,17 +1,13 @@
 from fastapi import APIRouter
 
-from app.config import get_settings
+from app.config import settings
 
 router = APIRouter(tags=["health"])
 
 
 @router.get("/")
 def read_root() -> dict[str, str]:
-    settings = get_settings()
-    return {
-        "message": f"Welcome to {settings.app_name}",
-        "cluster": settings.app_cluster,
-    }
+    return {"message": f"{settings.app_name} is running"}
 
 
 @router.get("/health")
