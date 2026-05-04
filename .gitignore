@@ -1,0 +1,17 @@
+__pycache__/
+*.pyc
+.pytest_cache/
+.venv/
+.env
+data/testnet/app.db
+data/mainnet/app.db
+data/testnet/stakes/*.json
+data/testnet/validator_rewards/*.json
+data/mainnet/stakes/*.json
+data/mainnet/validator_rewards/*.json
+pylint.txt
+htmlcov/
+coverage.xml
+
+*~
+.DS_Store
