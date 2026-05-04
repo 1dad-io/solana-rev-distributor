@@ -2,6 +2,7 @@ from app.routes.auth import router as auth_router
 from app.routes.epochs import router as epochs_router
 from app.routes.health import router as health_router
 from app.routes.policies import router as policies_router
+from app.routes.rewards import router as rewards_router
 from app.routes.stakers import router as stakers_router
 from app.routes.stakes import router as stakes_router
 from app.routes.validators import router as validators_router
@@ -11,6 +12,7 @@ __all__ = [
     "epochs_router",
     "health_router",
     "policies_router",
+    "rewards_router",
     "stakers_router",
     "stakes_router",
     "validators_router",

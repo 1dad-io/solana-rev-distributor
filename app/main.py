@@ -9,6 +9,7 @@ from app.routes import (
     epochs_router,
     health_router,
     policies_router,
+    rewards_router,
     stakers_router,
     stakes_router,
     validators_router,
@@ -30,3 +31,4 @@ app.include_router(stakers_router)
 app.include_router(policies_router)
 app.include_router(stakes_router)
 app.include_router(epochs_router)
+app.include_router(rewards_router)
