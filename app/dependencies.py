@@ -1,3 +1,5 @@
+from collections.abc import Callable
+
 from fastapi import Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordBearer
 from sqlalchemy.orm import Session
@@ -30,3 +32,23 @@ def get_current_user(
         )
 
     return user
+
+
+def require_role(expected_role: str) -> Callable:
+    def role_dependency(current_user: User = Depends(get_current_user)) -> User:
+        if current_user.role != expected_role:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Forbidden",
+            )
+        return current_user
+
+    return role_dependency
+
+
+def require_validator(current_user: User = Depends(require_role("validator"))) -> User:
+    return current_user
+
+
+def require_staker(current_user: User = Depends(require_role("staker"))) -> User:
+    return current_user
