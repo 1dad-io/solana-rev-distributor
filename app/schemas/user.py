@@ -31,3 +31,37 @@ class UserRead(UserBase):
     id: int
     created_at: datetime
     updated_at: datetime
+
+
+class ValidatorMeRead(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    username: str
+    role: Literal["validator"]
+    alias: str | None = None
+    validator_identity_pubkey: str
+    is_active: bool
+    created_at: datetime
+    updated_at: datetime
+
+
+class ValidatorMeUpdate(BaseModel):
+    alias: str | None = Field(default=None, max_length=128)
+    is_active: bool | None = None
+
+
+class StakerMeRead(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    username: str
+    role: Literal["staker"]
+    alias: str | None = None
+    staker_withdrawer_pubkey: str
+    is_active: bool
+    created_at: datetime
+    updated_at: datetime
+
+
+class StakerMeUpdate(BaseModel):
+    alias: str | None = Field(default=None, max_length=128)
+    is_active: bool | None = None
