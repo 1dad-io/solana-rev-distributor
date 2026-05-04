@@ -13,7 +13,12 @@ from app.schemas.validator import ValidatorCreate, ValidatorRead
 router = APIRouter(prefix="/validators", tags=["validators"])
 
 
-@router.post("", response_model=ValidatorRead, status_code=status.HTTP_201_CREATED)
+@router.post(
+    "",
+    response_model=ValidatorRead,
+    status_code=status.HTTP_201_CREATED,
+    include_in_schema=False,
+)
 def create_validator(payload: ValidatorCreate, db: Session = Depends(get_db)) -> Validator:
     validator = Validator(
         identity_pubkey=payload.identity_pubkey,
@@ -37,7 +42,11 @@ def create_validator(payload: ValidatorCreate, db: Session = Depends(get_db)) ->
     return validator
 
 
-@router.get("", response_model=list[ValidatorRead])
+@router.get(
+    "",
+    response_model=list[ValidatorRead],
+    include_in_schema=False,
+)
 def list_validators(db: Session = Depends(get_db)) -> list[Validator]:
     return db.query(Validator).order_by(Validator.created_at.desc()).all()
 
