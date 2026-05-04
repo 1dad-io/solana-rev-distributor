@@ -1,0 +1,106 @@
+from sqlalchemy.orm import Session
+
+from fastapi import APIRouter, Depends, HTTPException, Query, status
+
+from app.config import settings
+from app.db import get_db
+from app.dependencies import require_validator
+from app.models.stake_account import StakeAccount
+from app.models.stake_snapshot import StakeSnapshot
+from app.models.user import User
+from app.schemas.stake import StakeAccountRead, StakeImportRequest, StakeSnapshotRead
+from app.services.stake_import_service import import_stake_snapshot
+
+router = APIRouter(prefix="/validators/me/stakes", tags=["stakes"])
+
+
+@router.post("/import", response_model=StakeSnapshotRead, status_code=status.HTTP_201_CREATED)
+def import_stakes(
+    payload: StakeImportRequest,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_validator),
+) -> StakeSnapshot:
+    validator_identity_pubkey = current_user.validator_identity_pubkey
+    if not validator_identity_pubkey:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Validator profile not found",
+        )
+
+    try:
+        return import_stake_snapshot(
+            db=db,
+            validator_identity_pubkey=validator_identity_pubkey,
+            epoch=payload.epoch,
+        )
+    except FileNotFoundError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Stake snapshot file not found: {exc}",
+        ) from exc
+    except ValueError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail=str(exc),
+        ) from exc
+
+
+@router.get("", response_model=list[StakeSnapshotRead])
+def list_stake_snapshots(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_validator),
+) -> list[StakeSnapshot]:
+    validator_identity_pubkey = current_user.validator_identity_pubkey
+    if not validator_identity_pubkey:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Validator profile not found",
+        )
+
+    return (
+        db.query(StakeSnapshot)
+        .filter(StakeSnapshot.validator_identity_pubkey == validator_identity_pubkey)
+        .filter(StakeSnapshot.cluster == settings.app_cluster)
+        .order_by(StakeSnapshot.epoch.desc())
+        .all()
+    )
+
+
+@router.get("/{epoch}/accounts", response_model=list[StakeAccountRead])
+def list_stake_accounts(
+    epoch: int,
+    active_only: bool = Query(default=False),
+    withdrawer: str | None = Query(default=None),
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_validator),
+) -> list[StakeAccount]:
+    validator_identity_pubkey = current_user.validator_identity_pubkey
+    if not validator_identity_pubkey:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Validator profile not found",
+        )
+
+    snapshot = (
+        db.query(StakeSnapshot)
+        .filter(StakeSnapshot.validator_identity_pubkey == validator_identity_pubkey)
+        .filter(StakeSnapshot.cluster == settings.app_cluster)
+        .filter(StakeSnapshot.epoch == epoch)
+        .first()
+    )
+    if snapshot is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Stake snapshot not found",
+        )
+
+    query = db.query(StakeAccount).filter(StakeAccount.snapshot_id == snapshot.id)
+
+    if active_only:
+        query = query.filter(StakeAccount.active_stake_lamports.is_not(None))
+        query = query.filter(StakeAccount.active_stake_lamports > 0)
+
+    if withdrawer:
+        query = query.filter(StakeAccount.withdrawer_authority == withdrawer)
+
+    return query.order_by(StakeAccount.stake_pubkey.asc()).all()

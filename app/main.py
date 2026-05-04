@@ -9,6 +9,7 @@ from app.routes import (
     health_router,
     policies_router,
     stakers_router,
+    stakes_router,
     validators_router,
 )
 
@@ -26,3 +27,4 @@ app.include_router(auth_router)
 app.include_router(validators_router)
 app.include_router(stakers_router)
 app.include_router(policies_router)
+app.include_router(stakes_router)
