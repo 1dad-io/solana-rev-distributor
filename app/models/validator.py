@@ -1,3 +1,5 @@
+# pylint: disable=too-few-public-methods
+
 from datetime import datetime, timezone
 
 from sqlalchemy import Boolean, DateTime, Integer, String, UniqueConstraint

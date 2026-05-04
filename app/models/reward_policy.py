@@ -1,3 +1,5 @@
+# pylint: disable=too-few-public-methods
+
 from datetime import datetime, timezone
 
 from sqlalchemy import Boolean, DateTime, Integer, String
@@ -10,7 +12,9 @@ class RewardPolicy(Base):
     __tablename__ = "reward_policies"
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
-    validator_identity_pubkey: Mapped[str] = mapped_column(String(64), nullable=False, index=True)
+    validator_identity_pubkey: Mapped[str] = mapped_column(
+        String(64), nullable=False, index=True
+    )
     cluster: Mapped[str] = mapped_column(String(32), nullable=False, index=True)
 
     staker_withdrawer_pubkey: Mapped[str | None] = mapped_column(

@@ -1,3 +1,5 @@
+# pylint: disable=too-few-public-methods
+
 from datetime import datetime, timezone
 
 from sqlalchemy import DateTime, Integer, String
@@ -10,7 +12,9 @@ class StakeSnapshot(Base):
     __tablename__ = "stake_snapshots"
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
-    validator_identity_pubkey: Mapped[str] = mapped_column(String(64), nullable=False, index=True)
+    validator_identity_pubkey: Mapped[str] = mapped_column(
+        String(64), nullable=False, index=True
+    )
     cluster: Mapped[str] = mapped_column(String(32), nullable=False, index=True)
     epoch: Mapped[int] = mapped_column(Integer, nullable=False, index=True)
 

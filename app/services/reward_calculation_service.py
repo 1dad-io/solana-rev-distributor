@@ -16,9 +16,13 @@ def calculate_rewards_for_epoch(
     force_recalculate: bool = False,
 ) -> list[Reward]:
     if force_recalculate:
-        db.query(Reward).filter(Reward.validator_identity_pubkey == validator_identity_pubkey).filter(
-            Reward.cluster == settings.app_cluster
-        ).filter(Reward.epoch == epoch).delete()
+        (
+            db.query(Reward)
+            .filter(Reward.validator_identity_pubkey == validator_identity_pubkey)
+            .filter(Reward.cluster == settings.app_cluster)
+            .filter(Reward.epoch == epoch)
+            .delete()
+        )
         db.commit()
 
     existing_rewards = (
@@ -101,14 +105,10 @@ def calculate_rewards_for_epoch(
         active_stake = account.active_stake_lamports or 0
 
         gross_mev_reward = (
-            epoch_context.mev_revenue_lamports
-            * active_stake
-            // total_active_stake
+            epoch_context.mev_revenue_lamports * active_stake // total_active_stake
         )
         gross_block_reward = (
-            epoch_context.block_rewards_lamports
-            * active_stake
-            // total_active_stake
+            epoch_context.block_rewards_lamports * active_stake // total_active_stake
         )
 
         status = "calculated"
@@ -126,7 +126,9 @@ def calculate_rewards_for_epoch(
             policy_id_used = policy.id
 
             gross_mev_reward = gross_mev_reward * policy.mev_bps_back // 10000
-            gross_block_reward = gross_block_reward * policy.block_rewards_bps_back // 10000
+            gross_block_reward = (
+                gross_block_reward * policy.block_rewards_bps_back // 10000
+            )
             gross_reward = gross_mev_reward + gross_block_reward
 
             if not user.is_active:
