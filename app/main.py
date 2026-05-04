@@ -4,7 +4,13 @@ from fastapi import FastAPI
 
 from app.config import settings
 from app.db import init_db
-from app.routes import auth_router, health_router, stakers_router, validators_router
+from app.routes import (
+    auth_router,
+    health_router,
+    policies_router,
+    stakers_router,
+    validators_router,
+)
 
 
 @asynccontextmanager
@@ -19,3 +25,4 @@ app.include_router(health_router)
 app.include_router(auth_router)
 app.include_router(validators_router)
 app.include_router(stakers_router)
+app.include_router(policies_router)
