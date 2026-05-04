@@ -1,4 +1,5 @@
 from app.schemas.auth import SignupRequest, TokenResponse
+from app.schemas.policy import RewardPolicyCreate, RewardPolicyRead
 from app.schemas.user import (
     StakerMeRead,
     StakerMeUpdate,
@@ -20,4 +21,6 @@ __all__ = [
     "ValidatorMeUpdate",
     "StakerMeRead",
     "StakerMeUpdate",
+    "RewardPolicyCreate",
+    "RewardPolicyRead",
 ]
