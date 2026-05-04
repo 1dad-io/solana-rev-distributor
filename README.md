@@ -1,39 +1,27 @@
 # solana-rev-distributor
 
-A FastAPI-based MVP service for Solana validator REV distribution workflows.
+A FastAPI-based service for calculating REV kickback rewards for Solana validator stakers.
 
-## Current phase
+## Phase 2 status
 
-This repository currently contains the initial application skeleton:
-- FastAPI app bootstrap
-- environment-based configuration
-- SQLite initialization
-- automatic data directory creation
-- health endpoints
-- basic tests
+This repository currently includes:
 
-## Runtime model
+- FastAPI application bootstrap
+- SQLite auto-initialization
+- `User` and `Validator` SQLAlchemy models
+- Basic validator bootstrap endpoints
+- Healthcheck tests
 
-One running application instance works with a single cluster at a time.
-Select the runtime cluster by linking one of the provided environment files to `.env`.
-
-## Quick start
+## Run locally
 
 ```bash
-python3 -m venv .venv
-source .venv/bin/activate
-pip install -r requirements.txt
 ln -sf .env.testnet .env
+python3 -m pip install -r requirements.txt
 uvicorn app.main:app --reload
 ```
 
-Open Swagger at:
+Open Swagger UI at:
 
 ```text
 http://127.0.0.1:8000/docs
 ```
-
-## Health checks
-
-- `GET /`
-- `GET /health`
