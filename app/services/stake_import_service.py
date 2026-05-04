@@ -1,5 +1,7 @@
 import hashlib
 import json
+import shutil
+import subprocess
 from pathlib import Path
 
 from sqlalchemy.orm import Session
@@ -13,14 +15,57 @@ def _sha256_text(text: str) -> str:
     return hashlib.sha256(text.encode("utf-8")).hexdigest()
 
 
+def _fetch_stakes_with_solana_cli(source_path: Path, vote_account_pubkey: str) -> None:
+    solana_cli = shutil.which("solana")
+    if solana_cli is None:
+        raise FileNotFoundError(
+            "Stake snapshot file not found and Solana CLI is not installed. "
+            "Provide the JSON file manually or install Solana CLI."
+        )
+
+    source_path.parent.mkdir(parents=True, exist_ok=True)
+
+    command = [
+        solana_cli,
+        "-u",
+        settings.rpc_url,
+        "stakes",
+        vote_account_pubkey,
+        "--output",
+        "json",
+    ]
+
+    result = subprocess.run(
+        command,
+        capture_output=True,
+        text=True,
+        check=False,
+        timeout=settings.http_timeout_seconds,
+    )
+
+    if result.returncode != 0:
+        stderr = result.stderr.strip()
+        stdout = result.stdout.strip()
+        raise ValueError(
+            f"Failed to fetch stakes via Solana CLI: {stderr or stdout or 'unknown error'}"
+        )
+
+    source_path.write_text(result.stdout, encoding="utf-8")
+
+
 def import_stake_snapshot(
     db: Session,
     validator_identity_pubkey: str,
+    vote_account_pubkey: str,
     epoch: int,
 ) -> StakeSnapshot:
     source_path = Path(settings.stakes_dir) / f"{epoch}.json"
+
     if not source_path.exists():
-        raise FileNotFoundError(str(source_path))
+        _fetch_stakes_with_solana_cli(
+            source_path=source_path,
+            vote_account_pubkey=vote_account_pubkey,
+        )
 
     raw_text = source_path.read_text(encoding="utf-8")
     payload = json.loads(raw_text)

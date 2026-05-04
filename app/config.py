@@ -10,6 +10,10 @@ class Settings(BaseSettings):
     stakes_dir: str = "./data/testnet/stakes"
     validator_rewards_dir: str = "./data/testnet/validator_rewards"
 
+    rpc_url: str = "https://api.testnet.solana.com"
+    rpc_url_jito: str = "https://kobe.testnet.jito.network/api/v1/validator_rewards"
+    http_timeout_seconds: int = 30
+
     jwt_secret_key: str = "change-me"
     jwt_algorithm: str = "HS256"
     access_token_expire_minutes: int = 60

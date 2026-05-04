@@ -1,6 +1,6 @@
 # solana-rev-distributor
 
-A FastAPI-based service for calculating REV kickback rewards for Solana stakers.
+A FastAPI-based service for calculating REV kickback rewards for Solana validator stakers.
 
 ## Current MVP scope
 
@@ -11,8 +11,8 @@ The project provides:
 - validator self endpoints
 - staker self endpoints
 - reward policy management
-- stake snapshot import from local JSON files
-- epoch reward context import from local JSON files
+- stake snapshot import from local JSON files or Solana CLI
+- epoch reward context import from local JSON files or Jito Kobe endpoint
 - reward calculation in lamports
 - validator reward views
 - staker reward views and basic stats
@@ -59,8 +59,6 @@ To prepare a clean demo runtime database with preloaded users, policies, stake s
 python3 -m scripts.seed_demo
 ```
 
-This command recreates the runtime SQLite database configured in `.env` and writes demo JSON files for the demo epoch.
-
 ## Running the application
 
 Start the API server:
@@ -99,6 +97,20 @@ The demo seed prepares:
 - validator rewards file:
   - `data/testnet/validator_rewards/0.json`
 
+## Real data import
+
+### Stakes
+The application imports stake snapshots in this order:
+
+1. from a local JSON file in `data/<cluster>/stakes/<epoch>.json`
+2. if the file is missing, via `solana` CLI using the configured public Solana RPC
+
+### Validator rewards
+The application imports validator reward context in this order:
+
+1. from a local JSON file in `data/<cluster>/validator_rewards/<epoch>.json`
+2. if the file is missing, from the configured Jito Kobe endpoint
+
 ## Demo API flow
 
 ### Validator flow
@@ -119,6 +131,7 @@ The demo seed prepares:
 ## Notes
 
 - All reward values are stored in lamports.
-- The current MVP imports stake and validator reward source data from local JSON files.
-- The project is designed so external data fetching can be added later without breaking the API structure.
+- Public Solana RPC endpoints are used by default for development and demonstration.
+- Production deployments should use private or dedicated RPC providers configured outside the repository.
+- The testnet Jito Kobe endpoint is configured cluster-wise in `.env.testnet`.
 - Swagger UI is the main interface for demonstration.

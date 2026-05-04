@@ -1,3 +1,4 @@
+import httpx
 from sqlalchemy.orm import Session
 
 from fastapi import APIRouter, Depends, HTTPException, status
@@ -7,6 +8,7 @@ from app.db import get_db
 from app.dependencies import require_validator
 from app.models.epoch_reward_context import EpochRewardContext
 from app.models.user import User
+from app.models.validator import Validator
 from app.schemas.epoch import EpochImportRequest, EpochRewardContextRead
 from app.services.epoch_import_service import import_epoch_reward_context
 
@@ -26,10 +28,23 @@ def import_epoch_context(
             detail="Validator profile not found",
         )
 
+    validator = (
+        db.query(Validator)
+        .filter(Validator.identity_pubkey == validator_identity_pubkey)
+        .filter(Validator.cluster == settings.app_cluster)
+        .first()
+    )
+    if validator is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Validator record not found",
+        )
+
     try:
         return import_epoch_reward_context(
             db=db,
             validator_identity_pubkey=validator_identity_pubkey,
+            vote_account_pubkey=validator.vote_account_pubkey,
             epoch=payload.epoch,
             block_rewards_lamports=payload.block_rewards_lamports,
             uptime_bps=payload.uptime_bps,
@@ -37,12 +52,17 @@ def import_epoch_context(
     except FileNotFoundError as exc:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"Validator rewards file not found: {exc}",
+            detail=str(exc),
         ) from exc
     except ValueError as exc:
         raise HTTPException(
             status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
             detail=str(exc),
+        ) from exc
+    except httpx.HTTPError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_502_BAD_GATEWAY,
+            detail=f"Failed to fetch Jito validator rewards: {exc}",
         ) from exc
 
 
