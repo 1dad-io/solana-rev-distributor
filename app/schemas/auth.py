@@ -1,16 +1,60 @@
 from typing import Literal
 
-from pydantic import BaseModel, Field, model_validator, field_validator
+from pydantic import BaseModel, Field, field_validator, model_validator
+
+from app.schemas.examples import (
+    DEMO_ALIAS_STAKER,
+    DEMO_ALIAS_VALIDATOR,
+    DEMO_PASSWORD,
+    DEMO_STAKER_WITHDRAWER,
+    DEMO_USERNAME_STAKER,
+    DEMO_USERNAME_VALIDATOR,
+    DEMO_VALIDATOR_IDENTITY,
+)
 
 
 class SignupRequest(BaseModel):
-    username: str = Field(min_length=3, max_length=64)
-    password: str = Field(min_length=8, max_length=128)
-    role: Literal["validator", "staker"]
-    alias: str | None = Field(default=None, max_length=128)
-    validator_identity_pubkey: str | None = Field(default=None, min_length=32, max_length=64)
-    staker_withdrawer_pubkey: str | None = Field(default=None, min_length=32, max_length=64)
-    is_active: bool = True
+    username: str = Field(
+        min_length=3,
+        max_length=64,
+        description="Application username.",
+        examples=[DEMO_USERNAME_VALIDATOR],
+    )
+    password: str = Field(
+        min_length=8,
+        max_length=128,
+        description="Application password.",
+        examples=[DEMO_PASSWORD],
+    )
+    role: Literal["validator", "staker"] = Field(
+        description="User role.",
+        examples=["validator"],
+    )
+    alias: str | None = Field(
+        default=None,
+        max_length=128,
+        description="Optional human-readable alias.",
+        examples=[DEMO_ALIAS_VALIDATOR],
+    )
+    validator_identity_pubkey: str | None = Field(
+        default=None,
+        min_length=32,
+        max_length=64,
+        description="Validator identity pubkey. Required only for validator role.",
+        examples=[DEMO_VALIDATOR_IDENTITY],
+    )
+    staker_withdrawer_pubkey: str | None = Field(
+        default=None,
+        min_length=32,
+        max_length=64,
+        description="Staker withdrawer pubkey. Required only for staker role.",
+        examples=[DEMO_STAKER_WITHDRAWER],
+    )
+    is_active: bool = Field(
+        default=True,
+        description="Whether the user is active.",
+        examples=[True],
+    )
 
     @field_validator(
         "alias",
@@ -44,5 +88,12 @@ class SignupRequest(BaseModel):
 
 
 class TokenResponse(BaseModel):
-    access_token: str
-    token_type: str = "bearer"
+    access_token: str = Field(
+        description="Bearer access token.",
+        examples=["eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.demo.signature"],
+    )
+    token_type: str = Field(
+        default="bearer",
+        description="Token type.",
+        examples=["bearer"],
+    )

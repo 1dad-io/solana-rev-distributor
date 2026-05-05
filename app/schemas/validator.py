@@ -1,23 +1,60 @@
 from datetime import datetime
-from typing import Literal
 
 from pydantic import BaseModel, ConfigDict, Field
 
-
-class ValidatorBase(BaseModel):
-    identity_pubkey: str = Field(min_length=32, max_length=64)
-    vote_account_pubkey: str = Field(min_length=32, max_length=64)
-    alias: str = Field(min_length=1, max_length=128)
-    cluster: Literal["testnet", "mainnet"]
-    is_active: bool = True
+from app.schemas.examples import (
+    DEMO_ALIAS_VALIDATOR,
+    DEMO_VALIDATOR_IDENTITY,
+    DEMO_VOTE_ACCOUNT,
+)
 
 
-class ValidatorCreate(ValidatorBase):
-    pass
+class ValidatorCreate(BaseModel):
+    identity_pubkey: str = Field(
+        min_length=32,
+        max_length=64,
+        description="Validator identity pubkey.",
+        examples=[DEMO_VALIDATOR_IDENTITY],
+    )
+    vote_account_pubkey: str = Field(
+        min_length=32,
+        max_length=64,
+        description="Validator vote account pubkey.",
+        examples=[DEMO_VOTE_ACCOUNT],
+    )
+    alias: str = Field(
+        min_length=1,
+        max_length=128,
+        description="Human-readable validator alias.",
+        examples=[DEMO_ALIAS_VALIDATOR],
+    )
+    cluster: str = Field(
+        min_length=1,
+        max_length=32,
+        description="Cluster name.",
+        examples=["testnet"],
+    )
+    is_active: bool = Field(
+        default=True,
+        description="Whether the validator record is active.",
+        examples=[True],
+    )
 
 
-class ValidatorRead(ValidatorBase):
+class ValidatorRead(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
-    created_at: datetime
-    updated_at: datetime
+    id: int = Field(description="Internal validator ID.", examples=[1])
+    identity_pubkey: str = Field(
+        description="Validator identity pubkey.",
+        examples=[DEMO_VALIDATOR_IDENTITY],
+    )
+    vote_account_pubkey: str = Field(
+        description="Validator vote account pubkey.",
+        examples=[DEMO_VOTE_ACCOUNT],
+    )
+    alias: str = Field(description="Validator alias.", examples=[DEMO_ALIAS_VALIDATOR])
+    cluster: str = Field(description="Cluster name.", examples=["testnet"])
+    is_active: bool = Field(description="Whether the validator record is active.", examples=[True])
+    created_at: datetime = Field(description="Creation timestamp.")
+    updated_at: datetime = Field(description="Last update timestamp.")

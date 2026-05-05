@@ -2,15 +2,59 @@ from typing import Literal
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 
+from app.schemas.examples import (
+    DEMO_ALIAS_STAKER,
+    DEMO_ALIAS_VALIDATOR,
+    DEMO_PASSWORD,
+    DEMO_STAKER_WITHDRAWER,
+    DEMO_USERNAME_STAKER,
+    DEMO_USERNAME_VALIDATOR,
+    DEMO_VALIDATOR_IDENTITY,
+)
+
 
 class UserCreate(BaseModel):
-    username: str = Field(min_length=3, max_length=64)
-    password: str = Field(min_length=8, max_length=128)
-    role: Literal["validator", "staker"]
-    alias: str | None = Field(default=None, max_length=128)
-    validator_identity_pubkey: str | None = Field(default=None, min_length=32, max_length=64)
-    staker_withdrawer_pubkey: str | None = Field(default=None, min_length=32, max_length=64)
-    is_active: bool = True
+    username: str = Field(
+        min_length=3,
+        max_length=64,
+        description="Application username.",
+        examples=[DEMO_USERNAME_VALIDATOR],
+    )
+    password: str = Field(
+        min_length=8,
+        max_length=128,
+        description="Application password.",
+        examples=[DEMO_PASSWORD],
+    )
+    role: Literal["validator", "staker"] = Field(
+        description="User role.",
+        examples=["validator"],
+    )
+    alias: str | None = Field(
+        default=None,
+        max_length=128,
+        description="Optional human-readable alias.",
+        examples=[DEMO_ALIAS_VALIDATOR],
+    )
+    validator_identity_pubkey: str | None = Field(
+        default=None,
+        min_length=32,
+        max_length=64,
+        description="Validator identity pubkey. Required only for validator role.",
+        examples=[DEMO_VALIDATOR_IDENTITY],
+    )
+    staker_withdrawer_pubkey: str | None = Field(
+        default=None,
+        min_length=32,
+        max_length=64,
+        description="Staker withdrawer pubkey. Required only for staker role.",
+        examples=[DEMO_STAKER_WITHDRAWER],
+    )
+    is_active: bool = Field(
+        default=True,
+        description="Whether the user is active.",
+        examples=[True],
+    )
 
     @field_validator(
         "alias",
@@ -46,28 +90,46 @@ class UserCreate(BaseModel):
 class UserRead(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
-    id: int
-    username: str
-    role: str
-    alias: str | None
-    validator_identity_pubkey: str | None
-    staker_withdrawer_pubkey: str | None
-    is_active: bool
+    id: int = Field(description="Internal user ID.", examples=[1])
+    username: str = Field(description="Application username.", examples=[DEMO_USERNAME_VALIDATOR])
+    role: str = Field(description="User role.", examples=["validator"])
+    alias: str | None = Field(description="Human-readable alias.", examples=[DEMO_ALIAS_VALIDATOR])
+    validator_identity_pubkey: str | None = Field(
+        description="Validator identity pubkey.",
+        examples=[DEMO_VALIDATOR_IDENTITY],
+    )
+    staker_withdrawer_pubkey: str | None = Field(
+        description="Staker withdrawer pubkey.",
+        examples=[DEMO_STAKER_WITHDRAWER],
+    )
+    is_active: bool = Field(description="Whether the user is active.", examples=[True])
 
 
 class ValidatorMeRead(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
-    username: str
-    role: str
-    alias: str | None
-    validator_identity_pubkey: str | None
-    is_active: bool
+    username: str = Field(description="Validator username.", examples=[DEMO_USERNAME_VALIDATOR])
+    role: str = Field(description="User role.", examples=["validator"])
+    alias: str | None = Field(description="Validator alias.", examples=[DEMO_ALIAS_VALIDATOR])
+    validator_identity_pubkey: str | None = Field(
+        description="Validator identity pubkey.",
+        examples=[DEMO_VALIDATOR_IDENTITY],
+    )
+    is_active: bool = Field(description="Whether the validator user is active.", examples=[True])
 
 
 class ValidatorMeUpdate(BaseModel):
-    alias: str | None = Field(default=None, max_length=128)
-    is_active: bool | None = None
+    alias: str | None = Field(
+        default=None,
+        max_length=128,
+        description="New validator alias.",
+        examples=[DEMO_ALIAS_VALIDATOR],
+    )
+    is_active: bool | None = Field(
+        default=None,
+        description="Updated active flag.",
+        examples=[True],
+    )
 
     @field_validator("alias", mode="before")
     @classmethod
@@ -82,16 +144,28 @@ class ValidatorMeUpdate(BaseModel):
 class StakerMeRead(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
-    username: str
-    role: str
-    alias: str | None
-    staker_withdrawer_pubkey: str | None
-    is_active: bool
+    username: str = Field(description="Staker username.", examples=[DEMO_USERNAME_STAKER])
+    role: str = Field(description="User role.", examples=["staker"])
+    alias: str | None = Field(description="Staker alias.", examples=[DEMO_ALIAS_STAKER])
+    staker_withdrawer_pubkey: str | None = Field(
+        description="Staker withdrawer pubkey.",
+        examples=[DEMO_STAKER_WITHDRAWER],
+    )
+    is_active: bool = Field(description="Whether the staker user is active.", examples=[True])
 
 
 class StakerMeUpdate(BaseModel):
-    alias: str | None = Field(default=None, max_length=128)
-    is_active: bool | None = None
+    alias: str | None = Field(
+        default=None,
+        max_length=128,
+        description="New staker alias.",
+        examples=[DEMO_ALIAS_STAKER],
+    )
+    is_active: bool | None = Field(
+        default=None,
+        description="Updated active flag.",
+        examples=[True],
+    )
 
     @field_validator("alias", mode="before")
     @classmethod

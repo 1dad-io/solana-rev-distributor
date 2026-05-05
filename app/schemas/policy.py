@@ -1,41 +1,108 @@
 from datetime import datetime
 
-from pydantic import BaseModel, ConfigDict, Field, model_validator
+from pydantic import BaseModel, ConfigDict, Field, field_validator
+
+from app.schemas.examples import (
+    DEMO_BLOCK_REWARDS_BPS_BACK,
+    DEMO_EPOCH,
+    DEMO_MEV_BPS_BACK,
+    DEMO_STAKER_WITHDRAWER,
+)
 
 
-class RewardPolicyBase(BaseModel):
-    staker_withdrawer_pubkey: str | None = Field(default=None, min_length=32, max_length=64)
-    is_default: bool = False
-    mev_bps_back: int = Field(ge=0, le=10000)
-    block_rewards_bps_back: int = Field(ge=0, le=10000)
-    valid_from_epoch: int | None = Field(default=None, ge=0)
-    valid_to_epoch: int | None = Field(default=None, ge=0)
-    is_active: bool = True
+class RewardPolicyCreate(BaseModel):
+    staker_withdrawer_pubkey: str | None = Field(
+        default=None,
+        min_length=32,
+        max_length=64,
+        description="Staker withdrawer pubkey. Leave empty only for a default policy.",
+        examples=[DEMO_STAKER_WITHDRAWER],
+    )
+    is_default: bool = Field(
+        default=False,
+        description="Whether this policy is the validator default policy.",
+        examples=[False],
+    )
+    mev_bps_back: int = Field(
+        ge=0,
+        le=10000,
+        description="MEV share returned to the staker in basis points.",
+        examples=[DEMO_MEV_BPS_BACK],
+    )
+    block_rewards_bps_back: int = Field(
+        ge=0,
+        le=10000,
+        description="Block rewards share returned to the staker in basis points.",
+        examples=[DEMO_BLOCK_REWARDS_BPS_BACK],
+    )
+    valid_from_epoch: int | None = Field(
+        default=None,
+        ge=0,
+        description="Optional lower bound epoch for this policy.",
+        examples=[DEMO_EPOCH],
+    )
+    valid_to_epoch: int | None = Field(
+        default=None,
+        ge=0,
+        description="Optional upper bound epoch for this policy.",
+        examples=[DEMO_EPOCH],
+    )
+    is_active: bool = Field(
+        default=True,
+        description="Whether this policy is active.",
+        examples=[True],
+    )
 
-    @model_validator(mode="after")
-    def validate_policy_scope(self) -> "RewardPolicyBase":
-        if self.is_default and self.staker_withdrawer_pubkey is not None:
-            raise ValueError("Default policy must not contain staker_withdrawer_pubkey")
-        if not self.is_default and self.staker_withdrawer_pubkey is None:
-            raise ValueError("Non-default policy requires staker_withdrawer_pubkey")
+    @field_validator("staker_withdrawer_pubkey", mode="before")
+    @classmethod
+    def empty_string_to_none(cls, value: str | None) -> str | None:
+        if value is None:
+            return None
+        if isinstance(value, str) and not value.strip():
+            return None
+        return value
+
+    @field_validator("valid_to_epoch")
+    @classmethod
+    def validate_epoch_range(cls, value: int | None, info) -> int | None:
+        valid_from_epoch = info.data.get("valid_from_epoch")
         if (
-            self.valid_from_epoch is not None
-            and self.valid_to_epoch is not None
-            and self.valid_from_epoch > self.valid_to_epoch
+            value is not None
+            and valid_from_epoch is not None
+            and value < valid_from_epoch
         ):
-            raise ValueError("valid_from_epoch must be less than or equal to valid_to_epoch")
-        return self
+            raise ValueError("valid_to_epoch must be greater than or equal to valid_from_epoch")
+        return value
+
+    @field_validator("staker_withdrawer_pubkey")
+    @classmethod
+    def validate_default_policy_fields(cls, value: str | None, info) -> str | None:
+        is_default = info.data.get("is_default")
+        if is_default and value is not None:
+            raise ValueError("Default policy must not contain staker_withdrawer_pubkey")
+        if not is_default and value is None:
+            raise ValueError("Non-default policy requires staker_withdrawer_pubkey")
+        return value
 
 
-class RewardPolicyCreate(RewardPolicyBase):
-    pass
-
-
-class RewardPolicyRead(RewardPolicyBase):
+class RewardPolicyRead(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
-    id: int
-    validator_identity_pubkey: str
-    cluster: str
-    created_at: datetime
-    updated_at: datetime
+    id: int = Field(description="Internal reward policy ID.", examples=[1])
+    validator_identity_pubkey: str = Field(description="Validator identity pubkey.")
+    cluster: str = Field(description="Cluster name.", examples=["testnet"])
+    staker_withdrawer_pubkey: str | None = Field(
+        description="Staker withdrawer pubkey. Null for default policy.",
+        examples=[DEMO_STAKER_WITHDRAWER],
+    )
+    is_default: bool = Field(description="Whether this is a default policy.", examples=[False])
+    mev_bps_back: int = Field(description="MEV share returned in basis points.", examples=[DEMO_MEV_BPS_BACK])
+    block_rewards_bps_back: int = Field(
+        description="Block rewards share returned in basis points.",
+        examples=[DEMO_BLOCK_REWARDS_BPS_BACK],
+    )
+    valid_from_epoch: int | None = Field(description="Optional lower bound epoch.", examples=[DEMO_EPOCH])
+    valid_to_epoch: int | None = Field(description="Optional upper bound epoch.", examples=[DEMO_EPOCH])
+    is_active: bool = Field(description="Whether this policy is active.", examples=[True])
+    created_at: datetime = Field(description="Creation timestamp.")
+    updated_at: datetime = Field(description="Last update timestamp.")
