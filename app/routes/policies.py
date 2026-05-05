@@ -27,6 +27,40 @@ router = APIRouter(tags=["policies"])
         "default for all unmatched stakers."
     ),
     response_description="Created reward policy.",
+    openapi_extra={
+        "requestBody": {
+            "content": {
+                "application/json": {
+                    "examples": {
+                        "default_policy": {
+                            "summary": "Default policy",
+                            "value": {
+                                "staker_withdrawer_pubkey": None,
+                                "is_default": True,
+                                "mev_bps_back": 10000,
+                                "block_rewards_bps_back": 5000,
+                                "valid_from_epoch": None,
+                                "valid_to_epoch": None,
+                                "is_active": True,
+                            },
+                        },
+                        "individual_policy": {
+                            "summary": "Individual staker policy",
+                            "value": {
+                                "staker_withdrawer_pubkey": "Staker1111111111111111111111111111111111111",
+                                "is_default": False,
+                                "mev_bps_back": 10000,
+                                "block_rewards_bps_back": 5000,
+                                "valid_from_epoch": None,
+                                "valid_to_epoch": None,
+                                "is_active": True,
+                            },
+                        },
+                    }
+                }
+            }
+        }
+    },
 )
 def create_policy(
     payload: RewardPolicyCreate,
@@ -95,6 +129,40 @@ def list_policies(
         "activated or deactivated, and limited to an epoch range."
     ),
     response_description="Updated reward policy.",
+    openapi_extra={
+        "requestBody": {
+            "content": {
+                "application/json": {
+                    "examples": {
+                        "default_policy": {
+                            "summary": "Default policy",
+                            "value": {
+                                "staker_withdrawer_pubkey": None,
+                                "is_default": True,
+                                "mev_bps_back": 10000,
+                                "block_rewards_bps_back": 5000,
+                                "valid_from_epoch": None,
+                                "valid_to_epoch": None,
+                                "is_active": True,
+                            },
+                        },
+                        "individual_policy": {
+                            "summary": "Individual staker policy",
+                            "value": {
+                                "staker_withdrawer_pubkey": "Staker1111111111111111111111111111111111111",
+                                "is_default": False,
+                                "mev_bps_back": 10000,
+                                "block_rewards_bps_back": 5000,
+                                "valid_from_epoch": None,
+                                "valid_to_epoch": None,
+                                "is_active": True,
+                            },
+                        },
+                    }
+                }
+            }
+        }
+    },
 )
 def update_policy(
     policy_id: int,
