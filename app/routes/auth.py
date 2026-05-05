@@ -14,7 +14,18 @@ from app.security import create_access_token, hash_password, verify_password
 router = APIRouter(prefix="/auth", tags=["auth"])
 
 
-@router.post("/signup", response_model=UserRead, status_code=status.HTTP_201_CREATED)
+@router.post(
+    "/signup",
+    response_model=UserRead,
+    status_code=status.HTTP_201_CREATED,
+    summary="Create user account",
+    description=(
+        "Registers a new application user. "
+        "For validator role, only validator_identity_pubkey must be provided. "
+        "For staker role, only staker_withdrawer_pubkey must be provided."
+    ),
+    response_description="Created user profile.",
+)
 def signup(payload: SignupRequest, db: Session = Depends(get_db)) -> User:
     user = User(
         username=payload.username,
@@ -40,7 +51,16 @@ def signup(payload: SignupRequest, db: Session = Depends(get_db)) -> User:
     return user
 
 
-@router.post("/login", response_model=TokenResponse)
+@router.post(
+    "/login",
+    response_model=TokenResponse,
+    summary="Log in",
+    description=(
+        "Authenticates a user with username and password, "
+        "then returns a Bearer access token."
+    ),
+    response_description="Bearer access token.",
+)
 def login(
     form_data: OAuth2PasswordRequestForm = Depends(),
     db: Session = Depends(get_db),
@@ -59,10 +79,16 @@ def login(
             detail="Inactive user",
         )
 
-    access_token = create_access_token(user.username)
-    return TokenResponse(access_token=access_token, token_type="bearer")
+    access_token = create_access_token(subject=user.username)
+    return TokenResponse(access_token=access_token)
 
 
-@router.get("/me", response_model=UserRead)
-def read_current_user(current_user: User = Depends(get_current_user)) -> User:
+@router.get(
+    "/me",
+    response_model=UserRead,
+    summary="Get current user profile",
+    description="Returns the authenticated user profile for the current access token.",
+    response_description="Current authenticated user profile.",
+)
+def get_auth_me(current_user: User = Depends(get_current_user)) -> User:
     return current_user

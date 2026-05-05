@@ -1,15 +1,23 @@
 from fastapi import APIRouter
 
-from app.config import settings
-
 router = APIRouter(tags=["health"])
 
 
-@router.get("/")
-def read_root() -> dict[str, str]:
-    return {"message": f"{settings.app_name} is running"}
+@router.get(
+    "/",
+    summary="Root endpoint",
+    description="Basic root endpoint for quick API availability check.",
+    response_description="Simple API status message.",
+)
+def root() -> dict[str, str]:
+    return {"message": "solana-rev-distributor"}
 
 
-@router.get("/health")
-def healthcheck() -> dict[str, str]:
+@router.get(
+    "/health",
+    summary="Health check",
+    description="Returns the application health status.",
+    response_description="Application health status payload.",
+)
+def health() -> dict[str, str]:
     return {"status": "ok"}

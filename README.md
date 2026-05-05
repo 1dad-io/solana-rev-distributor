@@ -12,7 +12,7 @@ The project provides:
 - staker self endpoints
 - reward policy management
 - stake snapshot import from local JSON files or Solana CLI
-- epoch reward context import from local JSON files or Jito Kobe endpoint
+- epoch reward context import from local JSON files or Jito endpoint
 - reward calculation in lamports
 - validator reward views
 - staker reward views and basic stats
@@ -109,7 +109,7 @@ The application imports stake snapshots in this order:
 The application imports validator reward context in this order:
 
 1. from a local JSON file in `data/<cluster>/validator_rewards/<epoch>.json`
-2. if the file is missing, from the configured Jito Kobe endpoint
+2. if the file is missing, from the configured Jito endpoint
 
 ## Demo API flow
 
@@ -133,5 +133,5 @@ The application imports validator reward context in this order:
 - All reward values are stored in lamports.
 - Public Solana RPC endpoints are used by default for development and demonstration.
 - Production deployments should use private or dedicated RPC providers configured outside the repository.
-- The testnet Jito Kobe endpoint is configured cluster-wise in `.env.testnet`.
+- The testnet Jito endpoint is configured cluster-wise in `.env.testnet`.
 - Swagger UI is the main interface for demonstration.

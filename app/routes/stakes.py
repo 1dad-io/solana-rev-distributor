@@ -16,7 +16,17 @@ from app.services.stake_import_service import import_stake_snapshot
 router = APIRouter(prefix="/validators/me/stakes", tags=["stakes"])
 
 
-@router.post("/import", response_model=StakeSnapshotRead, status_code=status.HTTP_201_CREATED)
+@router.post(
+    "/import",
+    response_model=StakeSnapshotRead,
+    status_code=status.HTTP_201_CREATED,
+    summary="Import stake snapshot",
+    description=(
+        "Imports validator stake snapshot for an epoch. "
+        "If the source JSON file is missing, the service attempts to fetch stake data via Solana CLI."
+    ),
+    response_description="Imported stake snapshot metadata.",
+)
 def import_stakes(
     payload: StakeImportRequest,
     db: Session = Depends(get_db),
@@ -61,7 +71,13 @@ def import_stakes(
         ) from exc
 
 
-@router.get("", response_model=list[StakeSnapshotRead])
+@router.get(
+    "",
+    response_model=list[StakeSnapshotRead],
+    summary="List imported stake snapshots",
+    description="Returns imported stake snapshots for the authenticated validator.",
+    response_description="List of imported stake snapshots.",
+)
 def list_stake_snapshots(
     db: Session = Depends(get_db),
     current_user: User = Depends(require_validator),
@@ -82,7 +98,16 @@ def list_stake_snapshots(
     )
 
 
-@router.get("/{epoch}/accounts", response_model=list[StakeAccountRead])
+@router.get(
+    "/{epoch}/accounts",
+    response_model=list[StakeAccountRead],
+    summary="List stake accounts for epoch",
+    description=(
+        "Returns stake accounts from the imported snapshot for the selected epoch. "
+        "Optional filters allow returning only active accounts or only accounts for a specific withdrawer."
+    ),
+    response_description="List of imported stake accounts for the epoch.",
+)
 def list_stake_accounts(
     epoch: int,
     active_only: bool = Query(default=False),

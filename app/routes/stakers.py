@@ -10,12 +10,24 @@ from app.schemas.user import StakerMeRead, StakerMeUpdate
 router = APIRouter(prefix="/stakers", tags=["stakers"])
 
 
-@router.get("/me", response_model=StakerMeRead)
+@router.get(
+    "/me",
+    response_model=StakerMeRead,
+    summary="Get current staker profile",
+    description="Returns the authenticated staker user profile.",
+    response_description="Current staker profile.",
+)
 def get_staker_me(current_user: User = Depends(require_staker)) -> User:
     return current_user
 
 
-@router.put("/me", response_model=StakerMeRead)
+@router.put(
+    "/me",
+    response_model=StakerMeRead,
+    summary="Update current staker profile",
+    description="Updates editable fields of the authenticated staker profile.",
+    response_description="Updated staker profile.",
+)
 def update_staker_me(
     payload: StakerMeUpdate,
     db: Session = Depends(get_db),

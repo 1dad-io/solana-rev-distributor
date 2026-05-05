@@ -51,7 +51,13 @@ def list_validators(db: Session = Depends(get_db)) -> list[Validator]:
     return db.query(Validator).order_by(Validator.created_at.desc()).all()
 
 
-@router.get("/me", response_model=ValidatorMeRead)
+@router.get(
+    "/me",
+    response_model=ValidatorMeRead,
+    summary="Get current validator profile",
+    description="Returns the authenticated validator user profile.",
+    response_description="Current validator profile.",
+)
 def get_validator_me(current_user: User = Depends(require_validator)) -> User:
     if not current_user.validator_identity_pubkey:
         raise HTTPException(
@@ -61,7 +67,13 @@ def get_validator_me(current_user: User = Depends(require_validator)) -> User:
     return current_user
 
 
-@router.put("/me", response_model=ValidatorMeRead)
+@router.put(
+    "/me",
+    response_model=ValidatorMeRead,
+    summary="Update current validator profile",
+    description="Updates editable fields of the authenticated validator profile.",
+    response_description="Updated validator profile.",
+)
 def update_validator_me(
     payload: ValidatorMeUpdate,
     db: Session = Depends(get_db),

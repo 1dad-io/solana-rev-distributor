@@ -18,6 +18,12 @@ router = APIRouter(tags=["rewards"])
     "/validators/me/rewards/calculate",
     response_model=list[RewardRead],
     status_code=status.HTTP_201_CREATED,
+    summary="Calculate rewards",
+    description=(
+        "Calculates validator reward distribution for the selected epoch. "
+        "If epoch is omitted, the service resolves a default epoch depending on the current user mode."
+    ),
+    response_description="Calculated reward rows for the epoch.",
 )
 def calculate_rewards(
     payload: RewardCalculationRequest,
@@ -46,7 +52,13 @@ def calculate_rewards(
         ) from exc
 
 
-@router.get("/validators/me/rewards", response_model=list[RewardRead])
+@router.get(
+    "/validators/me/rewards",
+    response_model=list[RewardRead],
+    summary="List validator rewards",
+    description="Returns calculated reward rows for the authenticated validator and selected epoch.",
+    response_description="List of validator reward rows.",
+)
 def list_validator_rewards(
     epoch: int | None = None,
     db: Session = Depends(get_db),
@@ -71,7 +83,13 @@ def list_validator_rewards(
     )
 
 
-@router.get("/stakers/me/rewards", response_model=list[RewardRead])
+@router.get(
+    "/stakers/me/rewards",
+    response_model=list[RewardRead],
+    summary="List staker rewards",
+    description="Returns calculated reward rows for the authenticated staker and selected epoch.",
+    response_description="List of staker reward rows.",
+)
 def list_staker_rewards(
     epoch: int | None = None,
     db: Session = Depends(get_db),
@@ -96,7 +114,13 @@ def list_staker_rewards(
     )
 
 
-@router.get("/stakers/me/stats", response_model=StakerStatsRead)
+@router.get(
+    "/stakers/me/stats",
+    response_model=StakerStatsRead,
+    summary="Get staker reward stats",
+    description="Returns aggregated reward statistics for the authenticated staker and selected epoch.",
+    response_description="Aggregated staker reward statistics.",
+)
 def get_staker_stats(
     epoch: int | None = None,
     db: Session = Depends(get_db),

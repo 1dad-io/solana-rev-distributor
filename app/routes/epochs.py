@@ -16,7 +16,17 @@ from app.services.epoch_service import resolve_epoch_for_username
 router = APIRouter(prefix="/validators/me/epochs", tags=["epochs"])
 
 
-@router.post("/import", response_model=EpochRewardContextRead, status_code=status.HTTP_201_CREATED)
+@router.post(
+    "/import",
+    response_model=EpochRewardContextRead,
+    status_code=status.HTTP_201_CREATED,
+    summary="Import epoch reward context",
+    description=(
+        "Imports epoch reward context for the authenticated validator. "
+        "If the source JSON file is missing, the service attempts to fetch validator rewards from Jito endpoint."
+    ),
+    response_description="Imported epoch reward context.",
+)
 def import_epoch_context(
     payload: EpochImportRequest,
     db: Session = Depends(get_db),
@@ -68,7 +78,13 @@ def import_epoch_context(
         ) from exc
 
 
-@router.get("/{epoch}", response_model=EpochRewardContextRead)
+@router.get(
+    "/{epoch}",
+    response_model=EpochRewardContextRead,
+    summary="Get epoch reward context",
+    description="Returns the imported epoch reward context for the selected epoch.",
+    response_description="Epoch reward context for the selected epoch.",
+)
 def get_epoch_context(
     epoch: int,
     db: Session = Depends(get_db),

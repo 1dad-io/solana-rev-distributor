@@ -9,10 +9,20 @@ from app.models.reward_policy import RewardPolicy
 from app.models.user import User
 from app.schemas.policy import RewardPolicyCreate, RewardPolicyRead
 
-router = APIRouter(prefix="/validators/me/policies", tags=["policies"])
+router = APIRouter(tags=["policies"])
 
 
-@router.post("", response_model=RewardPolicyRead, status_code=status.HTTP_201_CREATED)
+@router.post(
+    "/validators/me/policies",
+    response_model=RewardPolicyRead,
+    status_code=status.HTTP_201_CREATED,
+    summary="Create reward policy",
+    description=(
+        "Creates a reward policy for the authenticated validator. "
+        "A policy can be either individual for a specific staker or default for all unmatched stakers."
+    ),
+    response_description="Created reward policy.",
+)
 def create_policy(
     payload: RewardPolicyCreate,
     db: Session = Depends(get_db),
@@ -43,7 +53,13 @@ def create_policy(
     return policy
 
 
-@router.get("", response_model=list[RewardPolicyRead])
+@router.get(
+    "/validators/me/policies",
+    response_model=list[RewardPolicyRead],
+    summary="List reward policies",
+    description="Returns reward policies belonging to the authenticated validator.",
+    response_description="List of validator reward policies.",
+)
 def list_policies(
     db: Session = Depends(get_db),
     current_user: User = Depends(require_validator),
