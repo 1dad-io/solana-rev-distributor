@@ -7,6 +7,7 @@ from app.db import get_db
 from app.dependencies import require_validator
 from app.models.reward_policy import RewardPolicy
 from app.models.user import User
+from app.schemas.examples import POLICY_REQUEST_EXAMPLES
 from app.schemas.policy import (
     RewardPolicyCreate,
     RewardPolicyRead,
@@ -31,32 +32,7 @@ router = APIRouter(tags=["policies"])
         "requestBody": {
             "content": {
                 "application/json": {
-                    "examples": {
-                        "default_policy": {
-                            "summary": "Default policy",
-                            "value": {
-                                "staker_withdrawer_pubkey": None,
-                                "is_default": True,
-                                "mev_bps_back": 10000,
-                                "block_rewards_bps_back": 5000,
-                                "valid_from_epoch": None,
-                                "valid_to_epoch": None,
-                                "is_active": True,
-                            },
-                        },
-                        "individual_policy": {
-                            "summary": "Individual staker policy",
-                            "value": {
-                                "staker_withdrawer_pubkey": "Staker1111111111111111111111111111111111111",
-                                "is_default": False,
-                                "mev_bps_back": 10000,
-                                "block_rewards_bps_back": 5000,
-                                "valid_from_epoch": None,
-                                "valid_to_epoch": None,
-                                "is_active": True,
-                            },
-                        },
-                    }
+                    "examples": POLICY_REQUEST_EXAMPLES,
                 }
             }
         }
@@ -133,32 +109,7 @@ def list_policies(
         "requestBody": {
             "content": {
                 "application/json": {
-                    "examples": {
-                        "default_policy": {
-                            "summary": "Default policy",
-                            "value": {
-                                "staker_withdrawer_pubkey": None,
-                                "is_default": True,
-                                "mev_bps_back": 10000,
-                                "block_rewards_bps_back": 5000,
-                                "valid_from_epoch": None,
-                                "valid_to_epoch": None,
-                                "is_active": True,
-                            },
-                        },
-                        "individual_policy": {
-                            "summary": "Individual staker policy",
-                            "value": {
-                                "staker_withdrawer_pubkey": "Staker1111111111111111111111111111111111111",
-                                "is_default": False,
-                                "mev_bps_back": 10000,
-                                "block_rewards_bps_back": 5000,
-                                "valid_from_epoch": None,
-                                "valid_to_epoch": None,
-                                "is_active": True,
-                            },
-                        },
-                    }
+                    "examples": POLICY_REQUEST_EXAMPLES,
                 }
             }
         }

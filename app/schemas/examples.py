@@ -19,3 +19,30 @@ DEMO_BLOCK_REWARDS_BPS_BACK = 5000
 DEMO_BLOCK_REWARDS_LAMPORTS = 1000000000
 DEMO_MEV_REVENUE_LAMPORTS = 500000000
 DEMO_UPTIME_BPS = 10000
+
+POLICY_REQUEST_EXAMPLES = {
+    "default_policy": {
+        "summary": "Default policy",
+        "value": {
+            "staker_withdrawer_pubkey": None,
+            "is_default": True,
+            "mev_bps_back": DEMO_MEV_BPS_BACK,
+            "block_rewards_bps_back": DEMO_BLOCK_REWARDS_BPS_BACK,
+            "valid_from_epoch": None,
+            "valid_to_epoch": None,
+            "is_active": True,
+        },
+    },
+    "individual_policy": {
+        "summary": "Individual staker policy",
+        "value": {
+            "staker_withdrawer_pubkey": DEMO_STAKER_WITHDRAWER,
+            "is_default": False,
+            "mev_bps_back": DEMO_MEV_BPS_BACK,
+            "block_rewards_bps_back": DEMO_BLOCK_REWARDS_BPS_BACK,
+            "valid_from_epoch": None,
+            "valid_to_epoch": None,
+            "is_active": True,
+        },
+    },
+}
