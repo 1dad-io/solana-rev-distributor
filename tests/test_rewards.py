@@ -95,14 +95,14 @@ def test_validator_can_calculate_rewards_and_staker_can_view_them(client) -> Non
     assert calc_data[0]["payable_reward_lamports"] > 0
 
     validator_rewards_response = client.get(
-        "/validators/me/rewards",
+        f"/validators/me/rewards?epoch={DEMO_EPOCH}",
         headers={"Authorization": f"Bearer {validator_token}"},
     )
     assert validator_rewards_response.status_code == 200
     assert len(validator_rewards_response.json()) == 1
 
     staker_rewards_response = client.get(
-        "/stakers/me/rewards",
+        f"/stakers/me/rewards?epoch={DEMO_EPOCH}",
         headers={"Authorization": f"Bearer {staker_token}"},
     )
     assert staker_rewards_response.status_code == 200
@@ -111,7 +111,7 @@ def test_validator_can_calculate_rewards_and_staker_can_view_them(client) -> Non
     assert staker_rewards[0]["staker_withdrawer_pubkey"] == DEMO_STAKER_WITHDRAWER
 
     staker_stats_response = client.get(
-        "/stakers/me/stats",
+        f"/stakers/me/stats?epoch={DEMO_EPOCH}",
         headers={"Authorization": f"Bearer {staker_token}"},
     )
     assert staker_stats_response.status_code == 200

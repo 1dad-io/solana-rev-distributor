@@ -8,6 +8,7 @@ from app.dependencies import require_staker, require_validator
 from app.models.reward import Reward
 from app.models.user import User
 from app.schemas.reward import RewardCalculationRequest, RewardRead, StakerStatsRead
+from app.services.epoch_service import resolve_epoch_for_username
 from app.services.reward_calculation_service import calculate_rewards_for_epoch
 
 router = APIRouter(tags=["rewards"])
@@ -31,10 +32,11 @@ def calculate_rewards(
         )
 
     try:
+        resolved_epoch = resolve_epoch_for_username(payload.epoch, current_user.username)
         return calculate_rewards_for_epoch(
             db=db,
             validator_identity_pubkey=validator_identity_pubkey,
-            epoch=payload.epoch,
+            epoch=resolved_epoch,
             force_recalculate=payload.force_recalculate,
         )
     except ValueError as exc:
@@ -57,16 +59,16 @@ def list_validator_rewards(
             detail="Validator profile not found",
         )
 
-    query = (
+    resolved_epoch = resolve_epoch_for_username(epoch, current_user.username)
+
+    return (
         db.query(Reward)
         .filter(Reward.validator_identity_pubkey == validator_identity_pubkey)
         .filter(Reward.cluster == settings.app_cluster)
+        .filter(Reward.epoch == resolved_epoch)
+        .order_by(Reward.id.asc())
+        .all()
     )
-
-    if epoch is not None:
-        query = query.filter(Reward.epoch == epoch)
-
-    return query.order_by(Reward.epoch.desc(), Reward.id.asc()).all()
 
 
 @router.get("/stakers/me/rewards", response_model=list[RewardRead])
@@ -82,20 +84,21 @@ def list_staker_rewards(
             detail="Staker profile not found",
         )
 
-    query = (
+    resolved_epoch = resolve_epoch_for_username(epoch, current_user.username)
+
+    return (
         db.query(Reward)
         .filter(Reward.staker_withdrawer_pubkey == staker_withdrawer_pubkey)
         .filter(Reward.cluster == settings.app_cluster)
+        .filter(Reward.epoch == resolved_epoch)
+        .order_by(Reward.id.asc())
+        .all()
     )
-
-    if epoch is not None:
-        query = query.filter(Reward.epoch == epoch)
-
-    return query.order_by(Reward.epoch.desc(), Reward.id.asc()).all()
 
 
 @router.get("/stakers/me/stats", response_model=StakerStatsRead)
 def get_staker_stats(
+    epoch: int | None = None,
     db: Session = Depends(get_db),
     current_user: User = Depends(require_staker),
 ) -> StakerStatsRead:
@@ -106,10 +109,13 @@ def get_staker_stats(
             detail="Staker profile not found",
         )
 
+    resolved_epoch = resolve_epoch_for_username(epoch, current_user.username)
+
     rewards = (
         db.query(Reward)
         .filter(Reward.staker_withdrawer_pubkey == staker_withdrawer_pubkey)
         .filter(Reward.cluster == settings.app_cluster)
+        .filter(Reward.epoch == resolved_epoch)
         .all()
     )
 

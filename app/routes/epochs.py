@@ -11,6 +11,7 @@ from app.models.user import User
 from app.models.validator import Validator
 from app.schemas.epoch import EpochImportRequest, EpochRewardContextRead
 from app.services.epoch_import_service import import_epoch_reward_context
+from app.services.epoch_service import resolve_epoch_for_username
 
 router = APIRouter(prefix="/validators/me/epochs", tags=["epochs"])
 
@@ -41,11 +42,12 @@ def import_epoch_context(
         )
 
     try:
+        resolved_epoch = resolve_epoch_for_username(payload.epoch, current_user.username)
         return import_epoch_reward_context(
             db=db,
             validator_identity_pubkey=validator_identity_pubkey,
             vote_account_pubkey=validator.vote_account_pubkey,
-            epoch=payload.epoch,
+            epoch=resolved_epoch,
             block_rewards_lamports=payload.block_rewards_lamports,
             uptime_bps=payload.uptime_bps,
         )
