@@ -14,18 +14,10 @@ def test_validator_can_calculate_rewards_and_staker_can_view_them(client) -> Non
         "role": "validator",
         "alias": "Test Validator Rewards A",
         "validator_identity_pubkey": "TestVa1idatorRewardsA11111111111111111111",
+        "vote_account_pubkey": DEMO_VOTE_ACCOUNT,
         "is_active": True,
     }
     client.post("/auth/signup", json=validator_signup)
-
-    create_validator_payload = {
-        "identity_pubkey": "TestVa1idatorRewardsA11111111111111111111",
-        "vote_account_pubkey": DEMO_VOTE_ACCOUNT,
-        "alias": "Test Validator Rewards A",
-        "cluster": "testnet",
-        "is_active": True,
-    }
-    client.post("/validators", json=create_validator_payload)
 
     staker_signup = {
         "username": "test_staker_rewards_a",
@@ -129,18 +121,10 @@ def test_reward_without_policy_creates_error_status(client) -> None:
         "role": "validator",
         "alias": "Test Validator Rewards B",
         "validator_identity_pubkey": "TestVa1idatorRewardsB11111111111111111111",
+        "vote_account_pubkey": DEMO_VOTE_ACCOUNT,
         "is_active": True,
     }
     client.post("/auth/signup", json=validator_signup)
-
-    create_validator_payload = {
-        "identity_pubkey": "TestVa1idatorRewardsB11111111111111111111",
-        "vote_account_pubkey": DEMO_VOTE_ACCOUNT,
-        "alias": "Test Validator Rewards B",
-        "cluster": "testnet",
-        "is_active": True,
-    }
-    client.post("/validators", json=create_validator_payload)
 
     staker_signup = {
         "username": "test_staker_rewards_b",

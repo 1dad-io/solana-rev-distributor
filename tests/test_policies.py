@@ -5,6 +5,7 @@ def test_validator_can_create_default_policy(client) -> None:
         "role": "validator",
         "alias": "Validator Policy Default",
         "validator_identity_pubkey": "dddddddddddddddddddddddddddddddd",
+        "vote_account_pubkey": "VoteAcc111111111111111111111111111111111111",
         "is_active": True,
     }
     client.post("/auth/signup", json=signup_payload)
@@ -15,25 +16,24 @@ def test_validator_can_create_default_policy(client) -> None:
     )
     token = login_response.json()["access_token"]
 
-    payload = {
-        "is_default": True,
-        "mev_bps_back": 10000,
-        "block_rewards_bps_back": 5000,
-        "valid_from_epoch": None,
-        "valid_to_epoch": None,
-        "is_active": True
-    }
-
     response = client.post(
         "/validators/me/policies",
-        json=payload,
+        json={
+            "staker_withdrawer_pubkey": None,
+            "is_default": True,
+            "mev_bps_back": 10000,
+            "block_rewards_bps_back": 5000,
+            "valid_from_epoch": None,
+            "valid_to_epoch": None,
+            "is_active": True,
+        },
         headers={"Authorization": f"Bearer {token}"},
     )
     assert response.status_code == 201
 
     data = response.json()
-    assert data["validator_identity_pubkey"] == "dddddddddddddddddddddddddddddddd"
     assert data["is_default"] is True
+    assert data["staker_withdrawer_pubkey"] is None
     assert data["mev_bps_back"] == 10000
     assert data["block_rewards_bps_back"] == 5000
 
@@ -45,6 +45,7 @@ def test_validator_can_create_individual_policy(client) -> None:
         "role": "validator",
         "alias": "Validator Policy Individual",
         "validator_identity_pubkey": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+        "vote_account_pubkey": "VoteAcc111111111111111111111111111111111111",
         "is_active": True,
     }
     client.post("/auth/signup", json=signup_payload)
@@ -55,28 +56,26 @@ def test_validator_can_create_individual_policy(client) -> None:
     )
     token = login_response.json()["access_token"]
 
-    payload = {
-        "staker_withdrawer_pubkey": "ffffffffffffffffffffffffffffffff",
-        "is_default": False,
-        "mev_bps_back": 10000,
-        "block_rewards_bps_back": 2500,
-        "valid_from_epoch": 900,
-        "valid_to_epoch": 950,
-        "is_active": True
-    }
-
     response = client.post(
         "/validators/me/policies",
-        json=payload,
+        json={
+            "staker_withdrawer_pubkey": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "is_default": False,
+            "mev_bps_back": 9000,
+            "block_rewards_bps_back": 4000,
+            "valid_from_epoch": None,
+            "valid_to_epoch": None,
+            "is_active": True,
+        },
         headers={"Authorization": f"Bearer {token}"},
     )
     assert response.status_code == 201
 
     data = response.json()
-    assert data["staker_withdrawer_pubkey"] == "ffffffffffffffffffffffffffffffff"
     assert data["is_default"] is False
-    assert data["valid_from_epoch"] == 900
-    assert data["valid_to_epoch"] == 950
+    assert data["staker_withdrawer_pubkey"] == "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+    assert data["mev_bps_back"] == 9000
+    assert data["block_rewards_bps_back"] == 4000
 
 
 def test_validator_can_list_own_policies(client) -> None:
@@ -86,6 +85,7 @@ def test_validator_can_list_own_policies(client) -> None:
         "role": "validator",
         "alias": "Validator Policy List",
         "validator_identity_pubkey": "1111aaaabbbbccccddddeeeeffff0000",
+        "vote_account_pubkey": "VoteAcc111111111111111111111111111111111111",
         "is_active": True,
     }
     client.post("/auth/signup", json=signup_payload)
@@ -99,10 +99,27 @@ def test_validator_can_list_own_policies(client) -> None:
     client.post(
         "/validators/me/policies",
         json={
+            "staker_withdrawer_pubkey": None,
             "is_default": True,
             "mev_bps_back": 10000,
             "block_rewards_bps_back": 5000,
-            "is_active": True
+            "valid_from_epoch": None,
+            "valid_to_epoch": None,
+            "is_active": True,
+        },
+        headers={"Authorization": f"Bearer {token}"},
+    )
+
+    client.post(
+        "/validators/me/policies",
+        json={
+            "staker_withdrawer_pubkey": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+            "is_default": False,
+            "mev_bps_back": 8000,
+            "block_rewards_bps_back": 3000,
+            "valid_from_epoch": None,
+            "valid_to_epoch": None,
+            "is_active": True,
         },
         headers={"Authorization": f"Bearer {token}"},
     )
@@ -112,17 +129,18 @@ def test_validator_can_list_own_policies(client) -> None:
         headers={"Authorization": f"Bearer {token}"},
     )
     assert response.status_code == 200
-    assert isinstance(response.json(), list)
-    assert len(response.json()) >= 1
+
+    data = response.json()
+    assert len(data) == 2
 
 
-def test_staker_cannot_access_validator_policies(client) -> None:
+def test_staker_cannot_create_policy(client) -> None:
     signup_payload = {
         "username": "staker_policy_forbidden",
         "password": "secret123",
         "role": "staker",
         "alias": "Staker Policy Forbidden",
-        "staker_withdrawer_pubkey": "12121212121212121212121212121212",
+        "staker_withdrawer_pubkey": "cccccccccccccccccccccccccccccccc",
         "is_active": True,
     }
     client.post("/auth/signup", json=signup_payload)
@@ -133,8 +151,17 @@ def test_staker_cannot_access_validator_policies(client) -> None:
     )
     token = login_response.json()["access_token"]
 
-    response = client.get(
+    response = client.post(
         "/validators/me/policies",
+        json={
+            "staker_withdrawer_pubkey": None,
+            "is_default": True,
+            "mev_bps_back": 10000,
+            "block_rewards_bps_back": 5000,
+            "valid_from_epoch": None,
+            "valid_to_epoch": None,
+            "is_active": True,
+        },
         headers={"Authorization": f"Bearer {token}"},
     )
     assert response.status_code == 403

@@ -5,6 +5,7 @@ def test_signup_validator(client) -> None:
         "role": "validator",
         "alias": "Validator User",
         "validator_identity_pubkey": "33333333333333333333333333333333",
+        "vote_account_pubkey": "VoteAcc111111111111111111111111111111111111",
         "is_active": True,
     }
 
@@ -14,8 +15,10 @@ def test_signup_validator(client) -> None:
     data = response.json()
     assert data["username"] == payload["username"]
     assert data["role"] == payload["role"]
+    assert data["alias"] == payload["alias"]
     assert data["validator_identity_pubkey"] == payload["validator_identity_pubkey"]
-    assert "password_hash" not in data
+    assert data["staker_withdrawer_pubkey"] is None
+    assert data["is_active"] is True
 
 
 def test_signup_staker(client) -> None:
@@ -34,8 +37,10 @@ def test_signup_staker(client) -> None:
     data = response.json()
     assert data["username"] == payload["username"]
     assert data["role"] == payload["role"]
+    assert data["alias"] == payload["alias"]
+    assert data["validator_identity_pubkey"] is None
     assert data["staker_withdrawer_pubkey"] == payload["staker_withdrawer_pubkey"]
-    assert "password_hash" not in data
+    assert data["is_active"] is True
 
 
 def test_login_success(client) -> None:
@@ -45,6 +50,7 @@ def test_login_success(client) -> None:
         "role": "validator",
         "alias": "Validator Two",
         "validator_identity_pubkey": "55555555555555555555555555555555",
+        "vote_account_pubkey": "VoteAcc111111111111111111111111111111111111",
         "is_active": True,
     }
     client.post("/auth/signup", json=signup_payload)
@@ -67,6 +73,7 @@ def test_login_wrong_password(client) -> None:
         "role": "validator",
         "alias": "Validator Three",
         "validator_identity_pubkey": "66666666666666666666666666666666",
+        "vote_account_pubkey": "VoteAcc111111111111111111111111111111111111",
         "is_active": True,
     }
     client.post("/auth/signup", json=signup_payload)
