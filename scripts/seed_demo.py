@@ -94,12 +94,14 @@ def main() -> None:
         import_stake_snapshot(
             db=db,
             validator_identity_pubkey=DEMO_VALIDATOR_IDENTITY,
+            vote_account_pubkey=DEMO_VOTE_ACCOUNT,
             epoch=DEMO_EPOCH,
         )
 
         import_epoch_reward_context(
             db=db,
             validator_identity_pubkey=DEMO_VALIDATOR_IDENTITY,
+            vote_account_pubkey=DEMO_VOTE_ACCOUNT,
             epoch=DEMO_EPOCH,
             block_rewards_lamports=1_000_000_000,
             uptime_bps=10000,
