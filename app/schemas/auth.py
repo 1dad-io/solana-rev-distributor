@@ -5,10 +5,7 @@ from pydantic import BaseModel, Field, field_validator, model_validator
 from app.schemas.examples import (
     DEMO_ALIAS_VALIDATOR,
     DEMO_PASSWORD,
-    DEMO_STAKER_WITHDRAWER,
     DEMO_USERNAME_VALIDATOR,
-    DEMO_VALIDATOR_IDENTITY,
-    DEMO_VOTE_ACCOUNT,
 )
 
 
@@ -40,21 +37,18 @@ class SignupRequest(BaseModel):
         min_length=32,
         max_length=64,
         description="Validator identity pubkey. Required only for validator role.",
-        examples=[DEMO_VALIDATOR_IDENTITY],
     )
     vote_account_pubkey: str | None = Field(
         default=None,
         min_length=32,
         max_length=64,
         description="Validator vote account pubkey. Required only for validator role.",
-        examples=[DEMO_VOTE_ACCOUNT],
     )
     staker_withdrawer_pubkey: str | None = Field(
         default=None,
         min_length=32,
         max_length=64,
         description="Staker withdrawer pubkey. Required only for staker role.",
-        examples=[DEMO_STAKER_WITHDRAWER],
     )
     is_active: bool = Field(
         default=True,

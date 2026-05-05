@@ -7,6 +7,7 @@ from app.schemas.examples import (
     DEMO_EPOCH,
     DEMO_MEV_BPS_BACK,
     DEMO_STAKER_WITHDRAWER,
+    DEMO_VALIDATOR_IDENTITY,
 )
 
 
@@ -15,11 +16,7 @@ class RewardPolicyCreate(BaseModel):
         default=None,
         min_length=32,
         max_length=64,
-        description=(
-            "Staker withdrawer pubkey. "
-            "Leave empty only for a default policy."
-        ),
-        examples=[DEMO_STAKER_WITHDRAWER],
+        description="Staker withdrawer pubkey. Leave empty only for a default policy.",
     )
     is_default: bool = Field(
         default=False,
@@ -69,11 +66,7 @@ class RewardPolicyCreate(BaseModel):
     @classmethod
     def validate_epoch_range(cls, value: int | None, info) -> int | None:
         valid_from_epoch = info.data.get("valid_from_epoch")
-        if (
-            value is not None
-            and valid_from_epoch is not None
-            and value < valid_from_epoch
-        ):
+        if value is not None and valid_from_epoch is not None and value < valid_from_epoch:
             raise ValueError("valid_to_epoch must be greater than or equal to valid_from_epoch")
         return value
 
@@ -91,11 +84,7 @@ class RewardPolicyUpdate(BaseModel):
         default=None,
         min_length=32,
         max_length=64,
-        description=(
-            "Staker withdrawer pubkey. "
-            "Leave empty only for a default policy."
-        ),
-        examples=[DEMO_STAKER_WITHDRAWER],
+        description="Staker withdrawer pubkey. Leave empty only for a default policy.",
     )
     is_default: bool = Field(
         default=False,
@@ -145,11 +134,7 @@ class RewardPolicyUpdate(BaseModel):
     @classmethod
     def validate_epoch_range(cls, value: int | None, info) -> int | None:
         valid_from_epoch = info.data.get("valid_from_epoch")
-        if (
-            value is not None
-            and valid_from_epoch is not None
-            and value < valid_from_epoch
-        ):
+        if value is not None and valid_from_epoch is not None and value < valid_from_epoch:
             raise ValueError("valid_to_epoch must be greater than or equal to valid_from_epoch")
         return value
 
@@ -166,16 +151,16 @@ class RewardPolicyRead(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
     id: int = Field(description="Internal reward policy ID.", examples=[1])
-    validator_identity_pubkey: str = Field(description="Validator identity pubkey.")
+    validator_identity_pubkey: str = Field(
+        description="Validator identity pubkey.",
+        examples=[DEMO_VALIDATOR_IDENTITY],
+    )
     cluster: str = Field(description="Cluster name.", examples=["testnet"])
     staker_withdrawer_pubkey: str | None = Field(
         description="Staker withdrawer pubkey. Null for default policy.",
         examples=[DEMO_STAKER_WITHDRAWER],
     )
-    is_default: bool = Field(
-        description="Whether this is a default policy.",
-        examples=[False],
-    )
+    is_default: bool = Field(description="Whether this is a default policy.", examples=[False])
     mev_bps_back: int = Field(
         description="MEV share returned in basis points.",
         examples=[DEMO_MEV_BPS_BACK],

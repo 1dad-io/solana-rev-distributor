@@ -104,18 +104,25 @@ class UserRead(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
     id: int = Field(description="Internal user ID.", examples=[1])
-    username: str = Field(description="Application username.", examples=[DEMO_USERNAME_VALIDATOR])
+    username: str = Field(
+        description="Application username.",
+        examples=[DEMO_USERNAME_VALIDATOR],
+    )
     role: str = Field(description="User role.", examples=["validator"])
-    alias: str | None = Field(description="Human-readable alias.", examples=[DEMO_ALIAS_VALIDATOR])
+    alias: str | None = Field(
+        description="Human-readable alias.",
+        examples=[DEMO_ALIAS_VALIDATOR],
+    )
     validator_identity_pubkey: str | None = Field(
-        description="Validator identity pubkey.",
-        examples=[DEMO_VALIDATOR_IDENTITY],
+        description="Validator identity pubkey. Null for staker users."
     )
     staker_withdrawer_pubkey: str | None = Field(
-        description="Staker withdrawer pubkey.",
-        examples=[DEMO_STAKER_WITHDRAWER],
+        description="Staker withdrawer pubkey. Null for validator users."
     )
-    is_active: bool = Field(description="Whether the user is active.", examples=[True])
+    is_active: bool = Field(
+        description="Whether the user is active.",
+        examples=[True],
+    )
 
 
 class ValidatorMeRead(BaseModel):

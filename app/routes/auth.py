@@ -28,6 +28,42 @@ router = APIRouter(prefix="/auth", tags=["auth"])
         "must be provided."
     ),
     response_description="Created user profile.",
+    openapi_extra={
+        "requestBody": {
+            "content": {
+                "application/json": {
+                    "examples": {
+                        "validator": {
+                            "summary": "Validator signup",
+                            "value": {
+                                "username": "demo_validator",
+                                "password": "secret123",
+                                "role": "validator",
+                                "alias": "Demo Validator",
+                                "validator_identity_pubkey": "Va1idator11111111111111111111111111111111111",
+                                "vote_account_pubkey": "VoteAcc111111111111111111111111111111111111",
+                                "staker_withdrawer_pubkey": None,
+                                "is_active": True,
+                            },
+                        },
+                        "staker": {
+                            "summary": "Staker signup",
+                            "value": {
+                                "username": "demo_staker",
+                                "password": "secret123",
+                                "role": "staker",
+                                "alias": "Demo Staker",
+                                "validator_identity_pubkey": None,
+                                "vote_account_pubkey": None,
+                                "staker_withdrawer_pubkey": "Staker1111111111111111111111111111111111111",
+                                "is_active": True,
+                            },
+                        },
+                    }
+                }
+            }
+        }
+    },
 )
 def signup(payload: SignupRequest, db: Session = Depends(get_db)) -> User:
     user = User(
