@@ -7,7 +7,11 @@ from app.db import get_db
 from app.dependencies import require_validator
 from app.models.reward_policy import RewardPolicy
 from app.models.user import User
-from app.schemas.policy import RewardPolicyCreate, RewardPolicyRead
+from app.schemas.policy import (
+    RewardPolicyCreate,
+    RewardPolicyRead,
+    RewardPolicyUpdate,
+)
 
 router = APIRouter(tags=["policies"])
 
@@ -79,3 +83,54 @@ def list_policies(
         .order_by(RewardPolicy.created_at.desc())
         .all()
     )
+
+
+@router.put(
+    "/validators/me/policies/{policy_id}",
+    response_model=RewardPolicyRead,
+    summary="Update reward policy",
+    description=(
+        "Updates an existing reward policy of the authenticated validator. "
+        "The policy can be switched between default and staker-specific modes, "
+        "activated or deactivated, and limited to an epoch range."
+    ),
+    response_description="Updated reward policy.",
+)
+def update_policy(
+    policy_id: int,
+    payload: RewardPolicyUpdate,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_validator),
+) -> RewardPolicy:
+    validator_identity_pubkey = current_user.validator_identity_pubkey
+    if not validator_identity_pubkey:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Validator profile not found",
+        )
+
+    policy = (
+        db.query(RewardPolicy)
+        .filter(RewardPolicy.id == policy_id)
+        .filter(RewardPolicy.validator_identity_pubkey == validator_identity_pubkey)
+        .filter(RewardPolicy.cluster == settings.app_cluster)
+        .first()
+    )
+    if policy is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Reward policy not found",
+        )
+
+    policy.staker_withdrawer_pubkey = payload.staker_withdrawer_pubkey
+    policy.is_default = payload.is_default
+    policy.mev_bps_back = payload.mev_bps_back
+    policy.block_rewards_bps_back = payload.block_rewards_bps_back
+    policy.valid_from_epoch = payload.valid_from_epoch
+    policy.valid_to_epoch = payload.valid_to_epoch
+    policy.is_active = payload.is_active
+
+    db.add(policy)
+    db.commit()
+    db.refresh(policy)
+    return policy

@@ -1,5 +1,4 @@
-# pylint: disable=too-many-locals,too-many-branches,too-many-statements
-
+from sqlalchemy import or_
 from sqlalchemy.orm import Session
 
 from app.config import settings
@@ -85,12 +84,19 @@ def calculate_rewards_for_epoch(
         if user is None:
             continue
 
+        epoch_compatible_filters = (
+            or_(RewardPolicy.valid_from_epoch.is_(None), RewardPolicy.valid_from_epoch <= epoch),
+            or_(RewardPolicy.valid_to_epoch.is_(None), RewardPolicy.valid_to_epoch >= epoch),
+        )
+
         policy = (
             db.query(RewardPolicy)
             .filter(RewardPolicy.validator_identity_pubkey == validator_identity_pubkey)
             .filter(RewardPolicy.cluster == settings.app_cluster)
             .filter(RewardPolicy.is_active.is_(True))
             .filter(RewardPolicy.staker_withdrawer_pubkey == withdrawer)
+            .filter(*epoch_compatible_filters)
+            .order_by(RewardPolicy.created_at.desc())
             .first()
         )
 
@@ -101,6 +107,8 @@ def calculate_rewards_for_epoch(
                 .filter(RewardPolicy.cluster == settings.app_cluster)
                 .filter(RewardPolicy.is_active.is_(True))
                 .filter(RewardPolicy.is_default.is_(True))
+                .filter(*epoch_compatible_filters)
+                .order_by(RewardPolicy.created_at.desc())
                 .first()
             )
 
