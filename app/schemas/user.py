@@ -10,6 +10,7 @@ from app.schemas.examples import (
     DEMO_USERNAME_STAKER,
     DEMO_USERNAME_VALIDATOR,
     DEMO_VALIDATOR_IDENTITY,
+    DEMO_VOTE_ACCOUNT,
 )
 
 
@@ -43,6 +44,13 @@ class UserCreate(BaseModel):
         description="Validator identity pubkey. Required only for validator role.",
         examples=[DEMO_VALIDATOR_IDENTITY],
     )
+    vote_account_pubkey: str | None = Field(
+        default=None,
+        min_length=32,
+        max_length=64,
+        description="Validator vote account pubkey. Required only for validator role.",
+        examples=[DEMO_VOTE_ACCOUNT],
+    )
     staker_withdrawer_pubkey: str | None = Field(
         default=None,
         min_length=32,
@@ -59,6 +67,7 @@ class UserCreate(BaseModel):
     @field_validator(
         "alias",
         "validator_identity_pubkey",
+        "vote_account_pubkey",
         "staker_withdrawer_pubkey",
         mode="before",
     )
@@ -75,6 +84,8 @@ class UserCreate(BaseModel):
         if self.role == "validator":
             if not self.validator_identity_pubkey:
                 raise ValueError("validator_identity_pubkey is required for validator role")
+            if not self.vote_account_pubkey:
+                raise ValueError("vote_account_pubkey is required for validator role")
             if self.staker_withdrawer_pubkey is not None:
                 raise ValueError("staker_withdrawer_pubkey must be empty for validator role")
 
@@ -83,6 +94,8 @@ class UserCreate(BaseModel):
                 raise ValueError("staker_withdrawer_pubkey is required for staker role")
             if self.validator_identity_pubkey is not None:
                 raise ValueError("validator_identity_pubkey must be empty for staker role")
+            if self.vote_account_pubkey is not None:
+                raise ValueError("vote_account_pubkey must be empty for staker role")
 
         return self
 
@@ -106,14 +119,16 @@ class UserRead(BaseModel):
 
 
 class ValidatorMeRead(BaseModel):
-    model_config = ConfigDict(from_attributes=True)
-
     username: str = Field(description="Validator username.", examples=[DEMO_USERNAME_VALIDATOR])
     role: str = Field(description="User role.", examples=["validator"])
     alias: str | None = Field(description="Validator alias.", examples=[DEMO_ALIAS_VALIDATOR])
     validator_identity_pubkey: str | None = Field(
         description="Validator identity pubkey.",
         examples=[DEMO_VALIDATOR_IDENTITY],
+    )
+    vote_account_pubkey: str | None = Field(
+        description="Validator vote account pubkey.",
+        examples=[DEMO_VOTE_ACCOUNT],
     )
     is_active: bool = Field(description="Whether the validator user is active.", examples=[True])
 

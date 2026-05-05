@@ -3,6 +3,7 @@ from sqlalchemy.orm import Session
 
 from fastapi import APIRouter, Depends, HTTPException, status
 
+from app.config import settings
 from app.db import get_db
 from app.dependencies import require_validator
 from app.models.user import User
@@ -51,6 +52,36 @@ def list_validators(db: Session = Depends(get_db)) -> list[Validator]:
     return db.query(Validator).order_by(Validator.created_at.desc()).all()
 
 
+def _build_validator_me_response(
+    db: Session,
+    current_user: User,
+) -> ValidatorMeRead:
+    validator_identity_pubkey = current_user.validator_identity_pubkey
+    if not validator_identity_pubkey:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Validator profile not found",
+        )
+
+    validator_record = (
+        db.query(Validator)
+        .filter(Validator.identity_pubkey == validator_identity_pubkey)
+        .filter(Validator.cluster == settings.app_cluster)
+        .first()
+    )
+
+    vote_account_pubkey = None if validator_record is None else validator_record.vote_account_pubkey
+
+    return ValidatorMeRead(
+        username=current_user.username,
+        role=current_user.role,
+        alias=current_user.alias,
+        validator_identity_pubkey=current_user.validator_identity_pubkey,
+        vote_account_pubkey=vote_account_pubkey,
+        is_active=current_user.is_active,
+    )
+
+
 @router.get(
     "/me",
     response_model=ValidatorMeRead,
@@ -58,13 +89,11 @@ def list_validators(db: Session = Depends(get_db)) -> list[Validator]:
     description="Returns the authenticated validator user profile.",
     response_description="Current validator profile.",
 )
-def get_validator_me(current_user: User = Depends(require_validator)) -> User:
-    if not current_user.validator_identity_pubkey:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Validator profile not found",
-        )
-    return current_user
+def get_validator_me(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_validator),
+) -> ValidatorMeRead:
+    return _build_validator_me_response(db=db, current_user=current_user)
 
 
 @router.put(
@@ -78,7 +107,7 @@ def update_validator_me(
     payload: ValidatorMeUpdate,
     db: Session = Depends(get_db),
     current_user: User = Depends(require_validator),
-) -> User:
+) -> ValidatorMeRead:
     if payload.alias is not None:
         current_user.alias = payload.alias
     if payload.is_active is not None:
@@ -87,4 +116,5 @@ def update_validator_me(
     db.add(current_user)
     db.commit()
     db.refresh(current_user)
-    return current_user
+
+    return _build_validator_me_response(db=db, current_user=current_user)
