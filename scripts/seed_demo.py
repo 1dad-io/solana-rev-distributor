@@ -33,6 +33,8 @@ def runtime_db_path() -> Path:
 
 
 def main() -> None:
+    # Run this script only when the API server is stopped.
+    # It recreates the runtime SQLite database file.
     engine.dispose()
 
     db_path = runtime_db_path()

@@ -59,6 +59,9 @@ To prepare a clean demo runtime database with preloaded users, policies, stake s
 python3 -m scripts.seed_demo
 ```
 
+Important: stop the API server before running the demo seed script.  
+The script recreates the runtime SQLite database file.
+
 ## Running the application
 
 Start the API server:
