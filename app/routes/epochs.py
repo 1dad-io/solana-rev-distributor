@@ -23,7 +23,8 @@ router = APIRouter(prefix="/validators/me/epochs", tags=["epochs"])
     summary="Import epoch reward context",
     description=(
         "Imports epoch reward context for the authenticated validator. "
-        "If the source JSON file is missing, the service attempts to fetch validator rewards from Jito endpoint."
+        "If the source JSON file is missing, the service attempts to fetch "
+        "validator rewards from Jito."
     ),
     response_description="Imported epoch reward context.",
 )
@@ -52,7 +53,10 @@ def import_epoch_context(
         )
 
     try:
-        resolved_epoch = resolve_epoch_for_username(payload.epoch, current_user.username)
+        resolved_epoch = resolve_epoch_for_username(
+            payload.epoch,
+            current_user.username,
+        )
         return import_epoch_reward_context(
             db=db,
             validator_identity_pubkey=validator_identity_pubkey,
@@ -99,7 +103,10 @@ def get_epoch_context(
 
     context = (
         db.query(EpochRewardContext)
-        .filter(EpochRewardContext.validator_identity_pubkey == validator_identity_pubkey)
+        .filter(
+            EpochRewardContext.validator_identity_pubkey
+            == validator_identity_pubkey
+        )
         .filter(EpochRewardContext.cluster == settings.app_cluster)
         .filter(EpochRewardContext.epoch == epoch)
         .first()

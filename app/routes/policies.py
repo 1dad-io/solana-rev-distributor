@@ -19,7 +19,8 @@ router = APIRouter(tags=["policies"])
     summary="Create reward policy",
     description=(
         "Creates a reward policy for the authenticated validator. "
-        "A policy can be either individual for a specific staker or default for all unmatched stakers."
+        "A policy can be either individual for a specific staker or "
+        "default for all unmatched stakers."
     ),
     response_description="Created reward policy.",
 )

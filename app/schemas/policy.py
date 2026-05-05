@@ -15,7 +15,10 @@ class RewardPolicyCreate(BaseModel):
         default=None,
         min_length=32,
         max_length=64,
-        description="Staker withdrawer pubkey. Leave empty only for a default policy.",
+        description=(
+            "Staker withdrawer pubkey. "
+            "Leave empty only for a default policy."
+        ),
         examples=[DEMO_STAKER_WITHDRAWER],
     )
     is_default: bool = Field(
@@ -71,7 +74,9 @@ class RewardPolicyCreate(BaseModel):
             and valid_from_epoch is not None
             and value < valid_from_epoch
         ):
-            raise ValueError("valid_to_epoch must be greater than or equal to valid_from_epoch")
+            raise ValueError(
+                "valid_to_epoch must be greater than or equal to valid_from_epoch"
+            )
         return value
 
     @field_validator("staker_withdrawer_pubkey")
@@ -79,7 +84,9 @@ class RewardPolicyCreate(BaseModel):
     def validate_default_policy_fields(cls, value: str | None, info) -> str | None:
         is_default = info.data.get("is_default")
         if is_default and value is not None:
-            raise ValueError("Default policy must not contain staker_withdrawer_pubkey")
+            raise ValueError(
+                "Default policy must not contain staker_withdrawer_pubkey"
+            )
         if not is_default and value is None:
             raise ValueError("Non-default policy requires staker_withdrawer_pubkey")
         return value
@@ -95,14 +102,26 @@ class RewardPolicyRead(BaseModel):
         description="Staker withdrawer pubkey. Null for default policy.",
         examples=[DEMO_STAKER_WITHDRAWER],
     )
-    is_default: bool = Field(description="Whether this is a default policy.", examples=[False])
-    mev_bps_back: int = Field(description="MEV share returned in basis points.", examples=[DEMO_MEV_BPS_BACK])
+    is_default: bool = Field(
+        description="Whether this is a default policy.",
+        examples=[False],
+    )
+    mev_bps_back: int = Field(
+        description="MEV share returned in basis points.",
+        examples=[DEMO_MEV_BPS_BACK],
+    )
     block_rewards_bps_back: int = Field(
         description="Block rewards share returned in basis points.",
         examples=[DEMO_BLOCK_REWARDS_BPS_BACK],
     )
-    valid_from_epoch: int | None = Field(description="Optional lower bound epoch.", examples=[DEMO_EPOCH])
-    valid_to_epoch: int | None = Field(description="Optional upper bound epoch.", examples=[DEMO_EPOCH])
+    valid_from_epoch: int | None = Field(
+        description="Optional lower bound epoch.",
+        examples=[DEMO_EPOCH],
+    )
+    valid_to_epoch: int | None = Field(
+        description="Optional upper bound epoch.",
+        examples=[DEMO_EPOCH],
+    )
     is_active: bool = Field(description="Whether this policy is active.", examples=[True])
     created_at: datetime = Field(description="Creation timestamp.")
     updated_at: datetime = Field(description="Last update timestamp.")

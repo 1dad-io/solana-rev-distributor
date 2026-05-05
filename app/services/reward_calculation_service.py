@@ -1,3 +1,5 @@
+# pylint: disable=too-many-locals,too-many-branches,too-many-statements
+
 from sqlalchemy.orm import Session
 
 from app.config import settings

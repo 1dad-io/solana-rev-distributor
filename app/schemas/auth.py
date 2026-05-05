@@ -3,11 +3,9 @@ from typing import Literal
 from pydantic import BaseModel, Field, field_validator, model_validator
 
 from app.schemas.examples import (
-    DEMO_ALIAS_STAKER,
     DEMO_ALIAS_VALIDATOR,
     DEMO_PASSWORD,
     DEMO_STAKER_WITHDRAWER,
-    DEMO_USERNAME_STAKER,
     DEMO_USERNAME_VALIDATOR,
     DEMO_VALIDATOR_IDENTITY,
 )

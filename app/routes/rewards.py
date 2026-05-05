@@ -21,7 +21,8 @@ router = APIRouter(tags=["rewards"])
     summary="Calculate rewards",
     description=(
         "Calculates validator reward distribution for the selected epoch. "
-        "If epoch is omitted, the service resolves a default epoch depending on the current user mode."
+        "If epoch is omitted, the service resolves a default epoch "
+        "depending on the current user mode."
     ),
     response_description="Calculated reward rows for the epoch.",
 )
@@ -38,7 +39,10 @@ def calculate_rewards(
         )
 
     try:
-        resolved_epoch = resolve_epoch_for_username(payload.epoch, current_user.username)
+        resolved_epoch = resolve_epoch_for_username(
+            payload.epoch,
+            current_user.username,
+        )
         return calculate_rewards_for_epoch(
             db=db,
             validator_identity_pubkey=validator_identity_pubkey,
@@ -56,7 +60,10 @@ def calculate_rewards(
     "/validators/me/rewards",
     response_model=list[RewardRead],
     summary="List validator rewards",
-    description="Returns calculated reward rows for the authenticated validator and selected epoch.",
+    description=(
+        "Returns calculated reward rows for the authenticated validator "
+        "and selected epoch."
+    ),
     response_description="List of validator reward rows.",
 )
 def list_validator_rewards(
@@ -87,7 +94,10 @@ def list_validator_rewards(
     "/stakers/me/rewards",
     response_model=list[RewardRead],
     summary="List staker rewards",
-    description="Returns calculated reward rows for the authenticated staker and selected epoch.",
+    description=(
+        "Returns calculated reward rows for the authenticated staker "
+        "and selected epoch."
+    ),
     response_description="List of staker reward rows.",
 )
 def list_staker_rewards(
@@ -118,7 +128,10 @@ def list_staker_rewards(
     "/stakers/me/stats",
     response_model=StakerStatsRead,
     summary="Get staker reward stats",
-    description="Returns aggregated reward statistics for the authenticated staker and selected epoch.",
+    description=(
+        "Returns aggregated reward statistics for the authenticated staker "
+        "and selected epoch."
+    ),
     response_description="Aggregated staker reward statistics.",
 )
 def get_staker_stats(
@@ -146,8 +159,12 @@ def get_staker_stats(
     rewards_count = len(rewards)
     epochs_count = len({reward.epoch for reward in rewards})
     stake_accounts_count = len({reward.stake_pubkey for reward in rewards})
-    gross_total_lamports = sum(reward.gross_reward_lamports for reward in rewards)
-    payable_total_lamports = sum(reward.payable_reward_lamports for reward in rewards)
+    gross_total_lamports = sum(
+        reward.gross_reward_lamports for reward in rewards
+    )
+    payable_total_lamports = sum(
+        reward.payable_reward_lamports for reward in rewards
+    )
 
     return StakerStatsRead(
         staker_withdrawer_pubkey=staker_withdrawer_pubkey,

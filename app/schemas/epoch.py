@@ -14,7 +14,10 @@ class EpochImportRequest(BaseModel):
     epoch: int | None = Field(
         default=None,
         ge=0,
-        description="Reward context epoch. If omitted, the default epoch is resolved automatically.",
+        description=(
+            "Reward context epoch. "
+            "If omitted, the default epoch is resolved automatically."
+        ),
         examples=[DEMO_EPOCH],
     )
     block_rewards_lamports: int = Field(
@@ -42,12 +45,18 @@ class EpochRewardContextRead(BaseModel):
         description="MEV revenue in lamports.",
         examples=[DEMO_MEV_REVENUE_LAMPORTS],
     )
-    mev_commission_bps: int = Field(description="MEV commission in basis points.", examples=[10000])
+    mev_commission_bps: int = Field(
+        description="MEV commission in basis points.",
+        examples=[10000],
+    )
     block_rewards_lamports: int = Field(
         description="Block rewards in lamports.",
         examples=[DEMO_BLOCK_REWARDS_LAMPORTS],
     )
-    uptime_bps: int = Field(description="Validator uptime in basis points.", examples=[DEMO_UPTIME_BPS])
+    uptime_bps: int = Field(
+        description="Validator uptime in basis points.",
+        examples=[DEMO_UPTIME_BPS],
+    )
     source_path: str = Field(
         description="Path to the imported source file.",
         examples=["data/testnet/validator_rewards/0.json"],

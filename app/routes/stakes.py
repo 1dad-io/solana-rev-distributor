@@ -23,7 +23,8 @@ router = APIRouter(prefix="/validators/me/stakes", tags=["stakes"])
     summary="Import stake snapshot",
     description=(
         "Imports validator stake snapshot for an epoch. "
-        "If the source JSON file is missing, the service attempts to fetch stake data via Solana CLI."
+        "If the source JSON file is missing, the service attempts to fetch "
+        "stake data via Solana CLI."
     ),
     response_description="Imported stake snapshot metadata.",
 )
@@ -52,7 +53,10 @@ def import_stakes(
         )
 
     try:
-        resolved_epoch = resolve_epoch_for_username(payload.epoch, current_user.username)
+        resolved_epoch = resolve_epoch_for_username(
+            payload.epoch,
+            current_user.username,
+        )
         return import_stake_snapshot(
             db=db,
             validator_identity_pubkey=validator_identity_pubkey,
@@ -103,8 +107,9 @@ def list_stake_snapshots(
     response_model=list[StakeAccountRead],
     summary="List stake accounts for epoch",
     description=(
-        "Returns stake accounts from the imported snapshot for the selected epoch. "
-        "Optional filters allow returning only active accounts or only accounts for a specific withdrawer."
+        "Returns stake accounts from the imported snapshot for the selected "
+        "epoch. Optional filters allow returning only active accounts or "
+        "only accounts for a specific withdrawer."
     ),
     response_description="List of imported stake accounts for the epoch.",
 )
