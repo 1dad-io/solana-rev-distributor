@@ -6,6 +6,7 @@ from app.db import get_db
 from app.dependencies import require_staker
 from app.models.user import User
 from app.schemas.user import StakerMeRead, StakerMeUpdate
+from app.services.profile_service import apply_self_profile_updates
 
 router = APIRouter(prefix="/stakers", tags=["stakers"])
 
@@ -33,10 +34,11 @@ def update_staker_me(
     db: Session = Depends(get_db),
     current_user: User = Depends(require_staker),
 ) -> User:
-    if payload.alias is not None:
-        current_user.alias = payload.alias
-    if payload.is_active is not None:
-        current_user.is_active = payload.is_active
+    apply_self_profile_updates(
+        user=current_user,
+        alias=payload.alias,
+        is_active=payload.is_active,
+    )
 
     db.add(current_user)
     db.commit()
