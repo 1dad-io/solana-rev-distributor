@@ -1,3 +1,6 @@
+from tests.conftest import DEMO_VOTE_ACCOUNT
+
+
 def test_validator_can_create_default_policy(client) -> None:
     signup_payload = {
         "username": "validator_policy_default",
@@ -165,3 +168,162 @@ def test_staker_cannot_create_policy(client) -> None:
         headers={"Authorization": f"Bearer {token}"},
     )
     assert response.status_code == 403
+
+
+def test_validator_cannot_create_duplicate_default_policy(client) -> None:
+    signup_payload = {
+        "username": "validator_policy_dup_default",
+        "password": "secret123",
+        "role": "validator",
+        "alias": "Validator Policy Dup Default",
+        "validator_identity_pubkey": "dupdefaultvalidator1111111111111111",
+        "vote_account_pubkey": DEMO_VOTE_ACCOUNT,
+        "is_active": True,
+    }
+    client.post("/auth/signup", json=signup_payload)
+
+    login_response = client.post(
+        "/auth/login",
+        data={"username": "validator_policy_dup_default", "password": "secret123"},
+    )
+    token = login_response.json()["access_token"]
+
+    payload = {
+        "staker_withdrawer_pubkey": None,
+        "is_default": True,
+        "mev_bps_back": 10000,
+        "block_rewards_bps_back": 5000,
+        "valid_from_epoch": None,
+        "valid_to_epoch": None,
+        "is_active": True,
+    }
+
+    first_response = client.post(
+        "/validators/me/policies",
+        json=payload,
+        headers={"Authorization": f"Bearer {token}"},
+    )
+    assert first_response.status_code == 201
+
+    duplicate_response = client.post(
+        "/validators/me/policies",
+        json=payload,
+        headers={"Authorization": f"Bearer {token}"},
+    )
+    assert duplicate_response.status_code == 409
+    assert duplicate_response.json()["detail"] == "An identical reward policy already exists"
+
+
+def test_validator_cannot_create_duplicate_individual_policy(client) -> None:
+    signup_payload = {
+        "username": "validator_policy_dup_individual",
+        "password": "secret123",
+        "role": "validator",
+        "alias": "Validator Policy Dup Individual",
+        "validator_identity_pubkey": "dupindividualvalidator11111111111111",
+        "vote_account_pubkey": DEMO_VOTE_ACCOUNT,
+        "is_active": True,
+    }
+    client.post("/auth/signup", json=signup_payload)
+
+    login_response = client.post(
+        "/auth/login",
+        data={"username": "validator_policy_dup_individual", "password": "secret123"},
+    )
+    token = login_response.json()["access_token"]
+
+    payload = {
+        "staker_withdrawer_pubkey": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+        "is_default": False,
+        "mev_bps_back": 9000,
+        "block_rewards_bps_back": 4000,
+        "valid_from_epoch": None,
+        "valid_to_epoch": None,
+        "is_active": True,
+    }
+
+    first_response = client.post(
+        "/validators/me/policies",
+        json=payload,
+        headers={"Authorization": f"Bearer {token}"},
+    )
+    assert first_response.status_code == 201
+
+    duplicate_response = client.post(
+        "/validators/me/policies",
+        json=payload,
+        headers={"Authorization": f"Bearer {token}"},
+    )
+    assert duplicate_response.status_code == 409
+    assert duplicate_response.json()["detail"] == "An identical reward policy already exists"
+
+
+def test_validator_cannot_update_policy_into_duplicate(client) -> None:
+    signup_payload = {
+        "username": "validator_policy_dup_update",
+        "password": "secret123",
+        "role": "validator",
+        "alias": "Validator Policy Dup Update",
+        "validator_identity_pubkey": "dupupdatevalidator11111111111111111",
+        "vote_account_pubkey": DEMO_VOTE_ACCOUNT,
+        "is_active": True,
+    }
+    client.post("/auth/signup", json=signup_payload)
+
+    login_response = client.post(
+        "/auth/login",
+        data={"username": "validator_policy_dup_update", "password": "secret123"},
+    )
+    token = login_response.json()["access_token"]
+
+    first_payload = {
+        "staker_withdrawer_pubkey": "cccccccccccccccccccccccccccccccc",
+        "is_default": False,
+        "mev_bps_back": 10000,
+        "block_rewards_bps_back": 5000,
+        "valid_from_epoch": None,
+        "valid_to_epoch": None,
+        "is_active": True,
+    }
+    second_payload = {
+        "staker_withdrawer_pubkey": "dddddddddddddddddddddddddddddddd",
+        "is_default": False,
+        "mev_bps_back": 8000,
+        "block_rewards_bps_back": 3000,
+        "valid_from_epoch": None,
+        "valid_to_epoch": None,
+        "is_active": True,
+    }
+
+    first_response = client.post(
+        "/validators/me/policies",
+        json=first_payload,
+        headers={"Authorization": f"Bearer {token}"},
+    )
+    assert first_response.status_code == 201
+    first_policy_id = first_response.json()["id"]
+
+    second_response = client.post(
+        "/validators/me/policies",
+        json=second_payload,
+        headers={"Authorization": f"Bearer {token}"},
+    )
+    assert second_response.status_code == 201
+    second_policy_id = second_response.json()["id"]
+
+    duplicate_update_response = client.put(
+        f"/validators/me/policies/{second_policy_id}",
+        json=first_payload,
+        headers={"Authorization": f"Bearer {token}"},
+    )
+    assert duplicate_update_response.status_code == 409
+    assert duplicate_update_response.json()["detail"] == "An identical reward policy already exists"
+
+    unchanged_first_response = client.get(
+        "/validators/me/policies",
+        headers={"Authorization": f"Bearer {token}"},
+    )
+    assert unchanged_first_response.status_code == 200
+    policy_ids = {item["id"] for item in unchanged_first_response.json()}
+    assert first_policy_id in policy_ids
+    assert second_policy_id in policy_ids
