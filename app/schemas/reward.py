@@ -103,8 +103,14 @@ class StakerStatsRead(BaseModel):
         description="Staker withdrawer pubkey.",
         examples=[DEMO_STAKER_WITHDRAWER],
     )
-    rewards_count: int = Field(description="Number of rewards in the result set.", examples=[1])
-    epochs_count: int = Field(description="Number of distinct epochs in the result set.", examples=[1])
+    rewards_count: int = Field(
+        description="Number of rewards in the result set.",
+        examples=[1],
+    )
+    epochs_count: int = Field(
+        description="Number of distinct epochs in the result set.",
+        examples=[1],
+    )
     stake_accounts_count: int = Field(
         description="Number of distinct stake accounts in the result set.",
         examples=[1],
