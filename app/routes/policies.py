@@ -4,9 +4,8 @@ from fastapi import APIRouter, Depends, HTTPException, status
 
 from app.config import settings
 from app.db import get_db
-from app.dependencies import get_current_validator_identity, require_validator
+from app.dependencies import get_current_validator_identity
 from app.models.reward_policy import RewardPolicy
-from app.models.user import User
 from app.schemas.examples import POLICY_REQUEST_EXAMPLES
 from app.schemas.policy import (
     RewardPolicyCreate,

@@ -15,7 +15,10 @@ class StakeImportRequest(BaseModel):
     epoch: int | None = Field(
         default=None,
         ge=0,
-        description="Stake snapshot epoch. If omitted, the default epoch is resolved automatically.",
+        description=(
+            "Stake snapshot epoch. If omitted, the default epoch "
+            "is resolved automatically."
+        ),
         examples=[DEMO_EPOCH],
     )
 

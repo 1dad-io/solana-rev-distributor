@@ -16,7 +16,10 @@ class RewardCalculationRequest(BaseModel):
     epoch: int | None = Field(
         default=None,
         ge=0,
-        description="Reward calculation epoch. If omitted, the default epoch is resolved automatically.",
+        description=(
+            "Reward calculation epoch. If omitted, the default epoch "
+            "is resolved automatically."
+        ),
         examples=[DEMO_EPOCH],
     )
     force_recalculate: bool = Field(
@@ -47,7 +50,10 @@ class RewardRead(BaseModel):
         description="Withdrawer authority pubkey.",
         examples=[DEMO_STAKER_WITHDRAWER],
     )
-    active_stake_lamports: int = Field(description="Active stake in lamports.", examples=[14887656841])
+    active_stake_lamports: int = Field(
+        description="Active stake in lamports.",
+        examples=[14887656841],
+    )
     validator_total_active_stake_lamports: int = Field(
         description="Validator total active stake in lamports for the epoch.",
         examples=[14887656841],
@@ -68,7 +74,10 @@ class RewardRead(BaseModel):
         description="Calculated block reward in lamports.",
         examples=[500000000],
     )
-    gross_reward_lamports: int = Field(description="Gross reward in lamports.", examples=[1000000000])
+    gross_reward_lamports: int = Field(
+        description="Gross reward in lamports.",
+        examples=[1000000000],
+    )
     payable_reward_lamports: int = Field(
         description="Payable reward in lamports.",
         examples=[1000000000],
@@ -88,7 +97,10 @@ class StakerStatsRead(BaseModel):
         description="Number of distinct stake accounts in the result set.",
         examples=[1],
     )
-    gross_total_lamports: int = Field(description="Gross total rewards in lamports.", examples=[1000000000])
+    gross_total_lamports: int = Field(
+        description="Gross total rewards in lamports.",
+        examples=[1000000000],
+    )
     payable_total_lamports: int = Field(
         description="Payable total rewards in lamports.",
         examples=[1000000000],

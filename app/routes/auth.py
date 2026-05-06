@@ -55,7 +55,9 @@ router = APIRouter(prefix="/auth", tags=["auth"])
                                 "alias": "Demo Staker",
                                 "validator_identity_pubkey": None,
                                 "vote_account_pubkey": None,
-                                "staker_withdrawer_pubkey": "Staker1111111111111111111111111111111111111",
+                                "staker_withdrawer_pubkey": (
+                                    "Staker1111111111111111111111111111111111111"
+                                ),
                                 "is_active": True,
                             },
                         },
@@ -93,7 +95,10 @@ def signup(payload: SignupRequest, db: Session = Depends(get_db)) -> User:
         db.rollback()
         raise HTTPException(
             status_code=status.HTTP_409_CONFLICT,
-            detail="User or validator with the same username or public key already exists",
+            detail=(
+                "User or validator with the same username or public key "
+                "already exists"
+            ),
         ) from exc
 
     db.refresh(user)

@@ -3,7 +3,6 @@ from sqlalchemy.orm import Session
 
 from fastapi import APIRouter, Depends, HTTPException, status
 
-from app.config import settings
 from app.db import get_db
 from app.dependencies import get_current_validator_record, require_validator
 from app.models.user import User
