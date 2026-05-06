@@ -4,7 +4,7 @@ from fastapi import APIRouter, Depends, HTTPException, status
 
 from app.config import settings
 from app.db import get_db
-from app.dependencies import require_validator
+from app.dependencies import get_current_validator_identity, require_validator
 from app.models.reward_policy import RewardPolicy
 from app.models.user import User
 from app.schemas.examples import POLICY_REQUEST_EXAMPLES
@@ -41,15 +41,8 @@ router = APIRouter(tags=["policies"])
 def create_policy(
     payload: RewardPolicyCreate,
     db: Session = Depends(get_db),
-    current_user: User = Depends(require_validator),
+    validator_identity_pubkey: str = Depends(get_current_validator_identity),
 ) -> RewardPolicy:
-    validator_identity_pubkey = current_user.validator_identity_pubkey
-    if not validator_identity_pubkey:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Validator profile not found",
-        )
-
     policy = RewardPolicy(
         validator_identity_pubkey=validator_identity_pubkey,
         cluster=settings.app_cluster,
@@ -77,15 +70,8 @@ def create_policy(
 )
 def list_policies(
     db: Session = Depends(get_db),
-    current_user: User = Depends(require_validator),
+    validator_identity_pubkey: str = Depends(get_current_validator_identity),
 ) -> list[RewardPolicy]:
-    validator_identity_pubkey = current_user.validator_identity_pubkey
-    if not validator_identity_pubkey:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Validator profile not found",
-        )
-
     return (
         db.query(RewardPolicy)
         .filter(RewardPolicy.validator_identity_pubkey == validator_identity_pubkey)
@@ -119,15 +105,8 @@ def update_policy(
     policy_id: int,
     payload: RewardPolicyUpdate,
     db: Session = Depends(get_db),
-    current_user: User = Depends(require_validator),
+    validator_identity_pubkey: str = Depends(get_current_validator_identity),
 ) -> RewardPolicy:
-    validator_identity_pubkey = current_user.validator_identity_pubkey
-    if not validator_identity_pubkey:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Validator profile not found",
-        )
-
     policy = (
         db.query(RewardPolicy)
         .filter(RewardPolicy.id == policy_id)

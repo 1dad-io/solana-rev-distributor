@@ -1,14 +1,14 @@
-from collections.abc import Callable
-
 from fastapi import Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordBearer
 from sqlalchemy.orm import Session
 
+from app.config import settings
 from app.db import get_db
 from app.models.user import User
+from app.models.validator import Validator
 from app.security import decode_access_token
 
-oauth2_scheme = OAuth2PasswordBearer(tokenUrl="auth/login")
+oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/auth/login")
 
 
 def get_current_user(
@@ -34,21 +34,57 @@ def get_current_user(
     return user
 
 
-def require_role(expected_role: str) -> Callable:
-    def role_dependency(current_user: User = Depends(get_current_user)) -> User:
-        if current_user.role != expected_role:
-            raise HTTPException(
-                status_code=status.HTTP_403_FORBIDDEN,
-                detail="Forbidden",
-            )
-        return current_user
-
-    return role_dependency
-
-
-def require_validator(current_user: User = Depends(require_role("validator"))) -> User:
+def require_validator(current_user: User = Depends(get_current_user)) -> User:
+    if current_user.role != "validator":
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Validator access required",
+        )
     return current_user
 
 
-def require_staker(current_user: User = Depends(require_role("staker"))) -> User:
+def require_staker(current_user: User = Depends(get_current_user)) -> User:
+    if current_user.role != "staker":
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Staker access required",
+        )
     return current_user
+
+
+def get_current_validator_identity(
+    current_user: User = Depends(require_validator),
+) -> str:
+    validator_identity_pubkey = current_user.validator_identity_pubkey
+    if not validator_identity_pubkey:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Validator profile not found",
+        )
+    return validator_identity_pubkey
+
+
+def get_current_validator_record(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_validator),
+) -> Validator:
+    validator_identity_pubkey = current_user.validator_identity_pubkey
+    if not validator_identity_pubkey:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Validator profile not found",
+        )
+
+    validator = (
+        db.query(Validator)
+        .filter(Validator.identity_pubkey == validator_identity_pubkey)
+        .filter(Validator.cluster == settings.app_cluster)
+        .first()
+    )
+    if validator is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Validator record not found",
+        )
+
+    return validator

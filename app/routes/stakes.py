@@ -4,7 +4,11 @@ from fastapi import APIRouter, Depends, HTTPException, Query, status
 
 from app.config import settings
 from app.db import get_db
-from app.dependencies import require_validator
+from app.dependencies import (
+    get_current_validator_identity,
+    get_current_validator_record,
+    require_validator,
+)
 from app.models.stake_account import StakeAccount
 from app.models.stake_snapshot import StakeSnapshot
 from app.models.user import User
@@ -32,26 +36,8 @@ def import_stakes(
     payload: StakeImportRequest,
     db: Session = Depends(get_db),
     current_user: User = Depends(require_validator),
+    validator: Validator = Depends(get_current_validator_record),
 ) -> StakeSnapshot:
-    validator_identity_pubkey = current_user.validator_identity_pubkey
-    if not validator_identity_pubkey:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Validator profile not found",
-        )
-
-    validator = (
-        db.query(Validator)
-        .filter(Validator.identity_pubkey == validator_identity_pubkey)
-        .filter(Validator.cluster == settings.app_cluster)
-        .first()
-    )
-    if validator is None:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Validator record not found",
-        )
-
     try:
         resolved_epoch = resolve_epoch_for_username(
             payload.epoch,
@@ -59,7 +45,7 @@ def import_stakes(
         )
         return import_stake_snapshot(
             db=db,
-            validator_identity_pubkey=validator_identity_pubkey,
+            validator_identity_pubkey=validator.identity_pubkey,
             vote_account_pubkey=validator.vote_account_pubkey,
             epoch=resolved_epoch,
         )
@@ -84,15 +70,8 @@ def import_stakes(
 )
 def list_stake_snapshots(
     db: Session = Depends(get_db),
-    current_user: User = Depends(require_validator),
+    validator_identity_pubkey: str = Depends(get_current_validator_identity),
 ) -> list[StakeSnapshot]:
-    validator_identity_pubkey = current_user.validator_identity_pubkey
-    if not validator_identity_pubkey:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Validator profile not found",
-        )
-
     return (
         db.query(StakeSnapshot)
         .filter(StakeSnapshot.validator_identity_pubkey == validator_identity_pubkey)
@@ -118,15 +97,8 @@ def list_stake_accounts(
     active_only: bool = Query(default=False),
     withdrawer: str | None = Query(default=None),
     db: Session = Depends(get_db),
-    current_user: User = Depends(require_validator),
+    validator_identity_pubkey: str = Depends(get_current_validator_identity),
 ) -> list[StakeAccount]:
-    validator_identity_pubkey = current_user.validator_identity_pubkey
-    if not validator_identity_pubkey:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Validator profile not found",
-        )
-
     snapshot = (
         db.query(StakeSnapshot)
         .filter(StakeSnapshot.validator_identity_pubkey == validator_identity_pubkey)

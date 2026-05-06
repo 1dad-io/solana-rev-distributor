@@ -4,7 +4,11 @@ from fastapi import APIRouter, Depends, HTTPException, status
 
 from app.config import settings
 from app.db import get_db
-from app.dependencies import require_staker, require_validator
+from app.dependencies import (
+    get_current_validator_identity,
+    require_staker,
+    require_validator,
+)
 from app.models.reward import Reward
 from app.models.user import User
 from app.schemas.reward import RewardCalculationRequest, RewardRead, StakerStatsRead
@@ -30,14 +34,8 @@ def calculate_rewards(
     payload: RewardCalculationRequest,
     db: Session = Depends(get_db),
     current_user: User = Depends(require_validator),
+    validator_identity_pubkey: str = Depends(get_current_validator_identity),
 ) -> list[Reward]:
-    validator_identity_pubkey = current_user.validator_identity_pubkey
-    if not validator_identity_pubkey:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Validator profile not found",
-        )
-
     try:
         resolved_epoch = resolve_epoch_for_username(
             payload.epoch,
@@ -70,14 +68,8 @@ def list_validator_rewards(
     epoch: int | None = None,
     db: Session = Depends(get_db),
     current_user: User = Depends(require_validator),
+    validator_identity_pubkey: str = Depends(get_current_validator_identity),
 ) -> list[Reward]:
-    validator_identity_pubkey = current_user.validator_identity_pubkey
-    if not validator_identity_pubkey:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Validator profile not found",
-        )
-
     resolved_epoch = resolve_epoch_for_username(epoch, current_user.username)
 
     return (
@@ -159,12 +151,8 @@ def get_staker_stats(
     rewards_count = len(rewards)
     epochs_count = len({reward.epoch for reward in rewards})
     stake_accounts_count = len({reward.stake_pubkey for reward in rewards})
-    gross_total_lamports = sum(
-        reward.gross_reward_lamports for reward in rewards
-    )
-    payable_total_lamports = sum(
-        reward.payable_reward_lamports for reward in rewards
-    )
+    gross_total_lamports = sum(reward.gross_reward_lamports for reward in rewards)
+    payable_total_lamports = sum(reward.payable_reward_lamports for reward in rewards)
 
     return StakerStatsRead(
         staker_withdrawer_pubkey=staker_withdrawer_pubkey,
