@@ -600,3 +600,299 @@ def test_reward_falls_back_to_default_policy_outside_individual_policy_epoch_ran
     assert rewards[0]["status"] == "calculated"
     assert rewards[0]["mev_bps_back_used"] == 6000
     assert rewards[0]["block_rewards_bps_back_used"] == 2000
+
+
+def test_reward_uses_most_recent_matching_individual_policy(client) -> None:
+    validator_signup = {
+        "username": "test_validator_rewards_priority_f",
+        "password": "secret123",
+        "role": "validator",
+        "alias": "Test Validator Rewards Priority F",
+        "validator_identity_pubkey": "PriorityValidatorF11111111111111111111",
+        "vote_account_pubkey": DEMO_VOTE_ACCOUNT,
+        "is_active": True,
+    }
+    client.post("/auth/signup", json=validator_signup)
+
+    staker_signup = {
+        "username": "test_staker_rewards_priority_f",
+        "password": "secret123",
+        "role": "staker",
+        "alias": "Test Staker Rewards Priority F",
+        "staker_withdrawer_pubkey": DEMO_STAKER_WITHDRAWER,
+        "is_active": True,
+    }
+    client.post("/auth/signup", json=staker_signup)
+
+    validator_login = client.post(
+        "/auth/login",
+        data={"username": "test_validator_rewards_priority_f", "password": "secret123"},
+    )
+    validator_token = validator_login.json()["access_token"]
+
+    first_policy_response = client.post(
+        "/validators/me/policies",
+        json={
+            "staker_withdrawer_pubkey": DEMO_STAKER_WITHDRAWER,
+            "is_default": False,
+            "mev_bps_back": 7000,
+            "block_rewards_bps_back": 3000,
+            "valid_from_epoch": None,
+            "valid_to_epoch": None,
+            "is_active": True,
+        },
+        headers={"Authorization": f"Bearer {validator_token}"},
+    )
+    assert first_policy_response.status_code == 201
+    first_policy_id = first_policy_response.json()["id"]
+
+    second_policy_response = client.post(
+        "/validators/me/policies",
+        json={
+            "staker_withdrawer_pubkey": DEMO_STAKER_WITHDRAWER,
+            "is_default": False,
+            "mev_bps_back": 9000,
+            "block_rewards_bps_back": 4000,
+            "valid_from_epoch": None,
+            "valid_to_epoch": None,
+            "is_active": True,
+        },
+        headers={"Authorization": f"Bearer {validator_token}"},
+    )
+    assert second_policy_response.status_code == 201
+    second_policy_id = second_policy_response.json()["id"]
+    assert second_policy_id != first_policy_id
+
+    write_demo_stakes_file()
+    write_demo_validator_rewards_file()
+
+    client.post(
+        "/validators/me/stakes/import",
+        json={"epoch": DEMO_EPOCH},
+        headers={"Authorization": f"Bearer {validator_token}"},
+    )
+    client.post(
+        "/validators/me/epochs/import",
+        json={
+            "epoch": DEMO_EPOCH,
+            "block_rewards_lamports": 1000000000,
+            "uptime_bps": 10000,
+        },
+        headers={"Authorization": f"Bearer {validator_token}"},
+    )
+
+    calc_response = client.post(
+        "/validators/me/rewards/calculate",
+        json={"epoch": DEMO_EPOCH, "force_recalculate": True},
+        headers={"Authorization": f"Bearer {validator_token}"},
+    )
+    assert calc_response.status_code == 201
+
+    rewards = calc_response.json()
+    assert len(rewards) == 1
+    assert rewards[0]["status"] == "calculated"
+    assert rewards[0]["policy_id_used"] == second_policy_id
+    assert rewards[0]["mev_bps_back_used"] == 9000
+    assert rewards[0]["block_rewards_bps_back_used"] == 4000
+
+
+def test_reward_uses_updated_individual_policy_as_most_recent_match(client) -> None:
+    validator_signup = {
+        "username": "test_validator_rewards_priority_g",
+        "password": "secret123",
+        "role": "validator",
+        "alias": "Test Validator Rewards Priority G",
+        "validator_identity_pubkey": "PriorityValidatorG11111111111111111111",
+        "vote_account_pubkey": DEMO_VOTE_ACCOUNT,
+        "is_active": True,
+    }
+    client.post("/auth/signup", json=validator_signup)
+
+    staker_signup = {
+        "username": "test_staker_rewards_priority_g",
+        "password": "secret123",
+        "role": "staker",
+        "alias": "Test Staker Rewards Priority G",
+        "staker_withdrawer_pubkey": DEMO_STAKER_WITHDRAWER,
+        "is_active": True,
+    }
+    client.post("/auth/signup", json=staker_signup)
+
+    validator_login = client.post(
+        "/auth/login",
+        data={"username": "test_validator_rewards_priority_g", "password": "secret123"},
+    )
+    validator_token = validator_login.json()["access_token"]
+
+    first_policy_response = client.post(
+        "/validators/me/policies",
+        json={
+            "staker_withdrawer_pubkey": DEMO_STAKER_WITHDRAWER,
+            "is_default": False,
+            "mev_bps_back": 6000,
+            "block_rewards_bps_back": 2000,
+            "valid_from_epoch": None,
+            "valid_to_epoch": None,
+            "is_active": True,
+        },
+        headers={"Authorization": f"Bearer {validator_token}"},
+    )
+    assert first_policy_response.status_code == 201
+    first_policy_id = first_policy_response.json()["id"]
+
+    second_policy_response = client.post(
+        "/validators/me/policies",
+        json={
+            "staker_withdrawer_pubkey": DEMO_STAKER_WITHDRAWER + "x"[:0],
+            "is_default": False,
+            "mev_bps_back": 8500,
+            "block_rewards_bps_back": 3500,
+            "valid_from_epoch": None,
+            "valid_to_epoch": None,
+            "is_active": True,
+        },
+        headers={"Authorization": f"Bearer {validator_token}"},
+    )
+    assert second_policy_response.status_code == 201
+    second_policy_id = second_policy_response.json()["id"]
+
+    update_response = client.put(
+        f"/validators/me/policies/{first_policy_id}",
+        json={
+            "staker_withdrawer_pubkey": DEMO_STAKER_WITHDRAWER,
+            "is_default": False,
+            "mev_bps_back": 9500,
+            "block_rewards_bps_back": 4500,
+            "valid_from_epoch": None,
+            "valid_to_epoch": None,
+            "is_active": True,
+        },
+        headers={"Authorization": f"Bearer {validator_token}"},
+    )
+    assert update_response.status_code == 200
+    assert update_response.json()["id"] == first_policy_id
+    assert first_policy_id != second_policy_id
+
+    write_demo_stakes_file()
+    write_demo_validator_rewards_file()
+
+    client.post(
+        "/validators/me/stakes/import",
+        json={"epoch": DEMO_EPOCH},
+        headers={"Authorization": f"Bearer {validator_token}"},
+    )
+    client.post(
+        "/validators/me/epochs/import",
+        json={
+            "epoch": DEMO_EPOCH,
+            "block_rewards_lamports": 1000000000,
+            "uptime_bps": 10000,
+        },
+        headers={"Authorization": f"Bearer {validator_token}"},
+    )
+
+    calc_response = client.post(
+        "/validators/me/rewards/calculate",
+        json={"epoch": DEMO_EPOCH, "force_recalculate": True},
+        headers={"Authorization": f"Bearer {validator_token}"},
+    )
+    assert calc_response.status_code == 201
+
+    rewards = calc_response.json()
+    assert len(rewards) == 1
+    assert rewards[0]["status"] == "calculated"
+    assert rewards[0]["policy_id_used"] == first_policy_id
+    assert rewards[0]["mev_bps_back_used"] == 9500
+    assert rewards[0]["block_rewards_bps_back_used"] == 4500
+
+
+def test_reward_uses_most_recent_matching_default_policy(client) -> None:
+    validator_signup = {
+        "username": "test_validator_rewards_priority_h",
+        "password": "secret123",
+        "role": "validator",
+        "alias": "Test Validator Rewards Priority H",
+        "validator_identity_pubkey": "PriorityValidatorH11111111111111111111",
+        "vote_account_pubkey": DEMO_VOTE_ACCOUNT,
+        "is_active": True,
+    }
+    client.post("/auth/signup", json=validator_signup)
+
+    staker_signup = {
+        "username": "test_staker_rewards_priority_h",
+        "password": "secret123",
+        "role": "staker",
+        "alias": "Test Staker Rewards Priority H",
+        "staker_withdrawer_pubkey": DEMO_STAKER_WITHDRAWER,
+        "is_active": True,
+    }
+    client.post("/auth/signup", json=staker_signup)
+
+    validator_login = client.post(
+        "/auth/login",
+        data={"username": "test_validator_rewards_priority_h", "password": "secret123"},
+    )
+    validator_token = validator_login.json()["access_token"]
+
+    first_policy_response = client.post(
+        "/validators/me/policies",
+        json={
+            "staker_withdrawer_pubkey": None,
+            "is_default": True,
+            "mev_bps_back": 2000,
+            "block_rewards_bps_back": 1000,
+            "valid_from_epoch": None,
+            "valid_to_epoch": None,
+            "is_active": True,
+        },
+        headers={"Authorization": f"Bearer {validator_token}"},
+    )
+    assert first_policy_response.status_code == 201
+
+    second_policy_response = client.post(
+        "/validators/me/policies",
+        json={
+            "staker_withdrawer_pubkey": None,
+            "is_default": True,
+            "mev_bps_back": 7500,
+            "block_rewards_bps_back": 2500,
+            "valid_from_epoch": DEMO_EPOCH,
+            "valid_to_epoch": DEMO_EPOCH,
+            "is_active": True,
+        },
+        headers={"Authorization": f"Bearer {validator_token}"},
+    )
+    assert second_policy_response.status_code == 201
+    second_policy_id = second_policy_response.json()["id"]
+
+    write_demo_stakes_file()
+    write_demo_validator_rewards_file()
+
+    client.post(
+        "/validators/me/stakes/import",
+        json={"epoch": DEMO_EPOCH},
+        headers={"Authorization": f"Bearer {validator_token}"},
+    )
+    client.post(
+        "/validators/me/epochs/import",
+        json={
+            "epoch": DEMO_EPOCH,
+            "block_rewards_lamports": 1000000000,
+            "uptime_bps": 10000,
+        },
+        headers={"Authorization": f"Bearer {validator_token}"},
+    )
+
+    calc_response = client.post(
+        "/validators/me/rewards/calculate",
+        json={"epoch": DEMO_EPOCH, "force_recalculate": True},
+        headers={"Authorization": f"Bearer {validator_token}"},
+    )
+    assert calc_response.status_code == 201
+
+    rewards = calc_response.json()
+    assert len(rewards) == 1
+    assert rewards[0]["status"] == "calculated"
+    assert rewards[0]["policy_id_used"] == second_policy_id
+    assert rewards[0]["mev_bps_back_used"] == 7500
+    assert rewards[0]["block_rewards_bps_back_used"] == 2500
