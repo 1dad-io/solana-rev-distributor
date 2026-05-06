@@ -51,7 +51,7 @@ SIGNUP_REQUEST_EXAMPLES = {
 
 POLICY_REQUEST_EXAMPLES = {
     "default_policy": {
-        "summary": "Default policy",
+        "summary": "Default policy without epoch limits",
         "value": {
             "staker_withdrawer_pubkey": None,
             "is_default": True,
@@ -63,7 +63,7 @@ POLICY_REQUEST_EXAMPLES = {
         },
     },
     "individual_policy": {
-        "summary": "Individual staker policy",
+        "summary": "Individual staker policy without epoch limits",
         "value": {
             "staker_withdrawer_pubkey": DEMO_STAKER_WITHDRAWER,
             "is_default": False,
@@ -71,6 +71,18 @@ POLICY_REQUEST_EXAMPLES = {
             "block_rewards_bps_back": DEMO_BLOCK_REWARDS_BPS_BACK,
             "valid_from_epoch": None,
             "valid_to_epoch": None,
+            "is_active": True,
+        },
+    },
+    "epoch_limited_policy": {
+        "summary": "Individual staker policy limited to one epoch",
+        "value": {
+            "staker_withdrawer_pubkey": DEMO_STAKER_WITHDRAWER,
+            "is_default": False,
+            "mev_bps_back": DEMO_MEV_BPS_BACK,
+            "block_rewards_bps_back": DEMO_BLOCK_REWARDS_BPS_BACK,
+            "valid_from_epoch": DEMO_EPOCH,
+            "valid_to_epoch": DEMO_EPOCH,
             "is_active": True,
         },
     },

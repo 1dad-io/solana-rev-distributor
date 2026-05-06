@@ -4,7 +4,6 @@ from pydantic import BaseModel, ConfigDict, Field, field_validator, model_valida
 
 from app.schemas.examples import (
     DEMO_BLOCK_REWARDS_BPS_BACK,
-    DEMO_EPOCH,
     DEMO_MEV_BPS_BACK,
     DEMO_STAKER_WITHDRAWER,
     DEMO_VALIDATOR_IDENTITY,
@@ -38,14 +37,14 @@ class RewardPolicyCreate(BaseModel):
     valid_from_epoch: int | None = Field(
         default=None,
         ge=0,
-        description="Optional lower bound epoch for this policy.",
-        examples=[DEMO_EPOCH],
+        description="Optional lower bound epoch for this policy. Null means no lower limit.",
+        examples=[None],
     )
     valid_to_epoch: int | None = Field(
         default=None,
         ge=0,
-        description="Optional upper bound epoch for this policy.",
-        examples=[DEMO_EPOCH],
+        description="Optional upper bound epoch for this policy. Null means no upper limit.",
+        examples=[None],
     )
     is_active: bool = Field(
         default=True,
@@ -106,14 +105,14 @@ class RewardPolicyUpdate(BaseModel):
     valid_from_epoch: int | None = Field(
         default=None,
         ge=0,
-        description="Optional lower bound epoch for this policy.",
-        examples=[DEMO_EPOCH],
+        description="Optional lower bound epoch for this policy. Null means no lower limit.",
+        examples=[None],
     )
     valid_to_epoch: int | None = Field(
         default=None,
         ge=0,
-        description="Optional upper bound epoch for this policy.",
-        examples=[DEMO_EPOCH],
+        description="Optional upper bound epoch for this policy. Null means no upper limit.",
+        examples=[None],
     )
     is_active: bool = Field(
         default=True,
@@ -170,12 +169,12 @@ class RewardPolicyRead(BaseModel):
         examples=[DEMO_BLOCK_REWARDS_BPS_BACK],
     )
     valid_from_epoch: int | None = Field(
-        description="Optional lower bound epoch.",
-        examples=[DEMO_EPOCH],
+        description="Optional lower bound epoch. Null means no lower limit.",
+        examples=[None],
     )
     valid_to_epoch: int | None = Field(
-        description="Optional upper bound epoch.",
-        examples=[DEMO_EPOCH],
+        description="Optional upper bound epoch. Null means no upper limit.",
+        examples=[None],
     )
     is_active: bool = Field(description="Whether this policy is active.", examples=[True])
     created_at: datetime = Field(description="Creation timestamp.")
