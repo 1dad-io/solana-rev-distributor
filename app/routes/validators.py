@@ -9,7 +9,7 @@ from app.models.user import User
 from app.models.validator import Validator
 from app.schemas.user import ValidatorMeRead, ValidatorMeUpdate
 from app.schemas.validator import ValidatorCreate, ValidatorRead
-from app.services.profile_service import apply_self_profile_updates
+from app.services.profile_service import apply_self_profile_updates, save_user_profile
 
 router = APIRouter(prefix="/validators", tags=["validators"])
 
@@ -98,9 +98,6 @@ def update_validator_me(
         alias=payload.alias,
         is_active=payload.is_active,
     )
-
-    db.add(current_user)
-    db.commit()
-    db.refresh(current_user)
+    save_user_profile(db, current_user)
 
     return _build_validator_me_response(current_user=current_user, validator=validator)

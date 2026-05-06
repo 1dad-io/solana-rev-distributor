@@ -39,13 +39,22 @@ class RewardRead(BaseModel):
     )
     cluster: str = Field(description="Cluster name.", examples=["testnet"])
     epoch: int = Field(description="Reward epoch.", examples=[DEMO_EPOCH])
-    stake_account_id: int = Field(description="Imported stake account row ID.", examples=[1])
-    policy_id_used: int | None = Field(description="Applied reward policy ID.", examples=[1])
+    stake_account_id: int = Field(
+        description="Imported stake account row ID.",
+        examples=[1],
+    )
+    policy_id_used: int | None = Field(
+        description="Applied reward policy ID.",
+        examples=[1],
+    )
     staker_withdrawer_pubkey: str = Field(
         description="Staker withdrawer pubkey.",
         examples=[DEMO_STAKER_WITHDRAWER],
     )
-    stake_pubkey: str = Field(description="Stake account pubkey.", examples=[DEMO_STAKE_ACCOUNT])
+    stake_pubkey: str = Field(
+        description="Stake account pubkey.",
+        examples=[DEMO_STAKE_ACCOUNT],
+    )
     withdrawer_authority: str = Field(
         description="Withdrawer authority pubkey.",
         examples=[DEMO_STAKER_WITHDRAWER],
@@ -82,7 +91,10 @@ class RewardRead(BaseModel):
         description="Payable reward in lamports.",
         examples=[1000000000],
     )
-    status: str = Field(description="Reward calculation status.", examples=["calculated"])
+    status: str = Field(
+        description="Reward calculation status.",
+        examples=["calculated"],
+    )
     calculated_at: datetime = Field(description="Calculation timestamp.")
 
 
