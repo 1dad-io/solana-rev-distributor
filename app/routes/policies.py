@@ -12,6 +12,7 @@ from app.schemas.policy import (
     RewardPolicyRead,
     RewardPolicyUpdate,
 )
+from app.services.policy_service import find_duplicate_policy
 
 router = APIRouter(tags=["policies"])
 
@@ -42,6 +43,24 @@ def create_policy(
     db: Session = Depends(get_db),
     validator_identity_pubkey: str = Depends(get_current_validator_identity),
 ) -> RewardPolicy:
+    duplicate_policy = find_duplicate_policy(
+        db,
+        validator_identity_pubkey=validator_identity_pubkey,
+        cluster=settings.app_cluster,
+        staker_withdrawer_pubkey=payload.staker_withdrawer_pubkey,
+        is_default=payload.is_default,
+        mev_bps_back=payload.mev_bps_back,
+        block_rewards_bps_back=payload.block_rewards_bps_back,
+        valid_from_epoch=payload.valid_from_epoch,
+        valid_to_epoch=payload.valid_to_epoch,
+        is_active=payload.is_active,
+    )
+    if duplicate_policy is not None:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="An identical reward policy already exists",
+        )
+
     policy = RewardPolicy(
         validator_identity_pubkey=validator_identity_pubkey,
         cluster=settings.app_cluster,
@@ -117,6 +136,25 @@ def update_policy(
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Reward policy not found",
+        )
+
+    duplicate_policy = find_duplicate_policy(
+        db,
+        validator_identity_pubkey=validator_identity_pubkey,
+        cluster=settings.app_cluster,
+        staker_withdrawer_pubkey=payload.staker_withdrawer_pubkey,
+        is_default=payload.is_default,
+        mev_bps_back=payload.mev_bps_back,
+        block_rewards_bps_back=payload.block_rewards_bps_back,
+        valid_from_epoch=payload.valid_from_epoch,
+        valid_to_epoch=payload.valid_to_epoch,
+        is_active=payload.is_active,
+        exclude_policy_id=policy.id,
+    )
+    if duplicate_policy is not None:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="An identical reward policy already exists",
         )
 
     policy.staker_withdrawer_pubkey = payload.staker_withdrawer_pubkey
