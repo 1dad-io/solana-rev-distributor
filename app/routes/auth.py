@@ -10,10 +10,49 @@ from app.dependencies import get_current_user
 from app.models.user import User
 from app.models.validator import Validator
 from app.schemas.auth import SignupRequest, TokenResponse
+from app.schemas.examples import (
+    DEMO_ALIAS_STAKER,
+    DEMO_ALIAS_VALIDATOR,
+    DEMO_PASSWORD,
+    DEMO_STAKER_WITHDRAWER,
+    DEMO_USERNAME_STAKER,
+    DEMO_USERNAME_VALIDATOR,
+    DEMO_VALIDATOR_IDENTITY,
+    DEMO_VOTE_ACCOUNT,
+)
 from app.schemas.user import UserRead
 from app.security import create_access_token, hash_password, verify_password
 
 router = APIRouter(prefix="/auth", tags=["auth"])
+
+SIGNUP_REQUEST_EXAMPLES = {
+    "validator": {
+        "summary": "Validator signup",
+        "value": {
+            "username": DEMO_USERNAME_VALIDATOR,
+            "password": DEMO_PASSWORD,
+            "role": "validator",
+            "alias": DEMO_ALIAS_VALIDATOR,
+            "validator_identity_pubkey": DEMO_VALIDATOR_IDENTITY,
+            "vote_account_pubkey": DEMO_VOTE_ACCOUNT,
+            "staker_withdrawer_pubkey": None,
+            "is_active": True,
+        },
+    },
+    "staker": {
+        "summary": "Staker signup",
+        "value": {
+            "username": DEMO_USERNAME_STAKER,
+            "password": DEMO_PASSWORD,
+            "role": "staker",
+            "alias": DEMO_ALIAS_STAKER,
+            "validator_identity_pubkey": None,
+            "vote_account_pubkey": None,
+            "staker_withdrawer_pubkey": DEMO_STAKER_WITHDRAWER,
+            "is_active": True,
+        },
+    },
+}
 
 
 @router.post(
@@ -32,36 +71,7 @@ router = APIRouter(prefix="/auth", tags=["auth"])
         "requestBody": {
             "content": {
                 "application/json": {
-                    "examples": {
-                        "validator": {
-                            "summary": "Validator signup",
-                            "value": {
-                                "username": "demo_validator",
-                                "password": "secret123",
-                                "role": "validator",
-                                "alias": "Demo Validator",
-                                "validator_identity_pubkey": "Va1idator11111111111111111111111111111111111",
-                                "vote_account_pubkey": "VoteAcc111111111111111111111111111111111111",
-                                "staker_withdrawer_pubkey": None,
-                                "is_active": True,
-                            },
-                        },
-                        "staker": {
-                            "summary": "Staker signup",
-                            "value": {
-                                "username": "demo_staker",
-                                "password": "secret123",
-                                "role": "staker",
-                                "alias": "Demo Staker",
-                                "validator_identity_pubkey": None,
-                                "vote_account_pubkey": None,
-                                "staker_withdrawer_pubkey": (
-                                    "Staker1111111111111111111111111111111111111"
-                                ),
-                                "is_active": True,
-                            },
-                        },
-                    }
+                    "examples": SIGNUP_REQUEST_EXAMPLES,
                 }
             }
         }
