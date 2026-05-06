@@ -114,22 +114,53 @@ The application imports validator reward context in this order:
 1. from a local JSON file in `data/<cluster>/validator_rewards/<epoch>.json`
 2. if the file is missing, from the configured Jito endpoint
 
-## Demo API flow
+## Reward Policies
 
-### Validator flow
-- log in
-- open `/validators/me`
-- view policies
-- view imported stake snapshots
-- view imported epoch reward context
-- calculate rewards
-- view validator rewards
+A validator can create reward policies that define how MEV revenue and block rewards are shared with stakers.
 
-### Staker flow
-- log in
-- open `/stakers/me`
-- view rewards
-- view stats
+Policy fields:
+- `staker_withdrawer_pubkey` — staker withdrawer pubkey for an individual policy; `null` for a default policy
+- `is_default` — whether the policy is the validator fallback policy for unmatched stakers
+- `mev_bps_back` — MEV share returned to the staker in basis points
+- `block_rewards_bps_back` — block rewards share returned to the staker in basis points
+- `valid_from_epoch` — optional lower bound epoch; `null` means no lower limit
+- `valid_to_epoch` — optional upper bound epoch; `null` means no upper limit
+- `is_active` — whether the policy can be used in reward calculation
+
+The API does not allow creating or updating a policy into a full duplicate of another policy of the same validator. In that case the API returns `409 Conflict`.
+
+## Reward Calculation Policy Selection
+
+When rewards are calculated for a validator and epoch, policy selection is deterministic:
+
+1. Only policies with `is_active = true` are considered.
+2. The policy must match the reward epoch:
+   - if `valid_from_epoch` is set, the reward epoch must be greater than or equal to it
+   - if `valid_to_epoch` is set, the reward epoch must be less than or equal to it
+3. An individual policy for the staker takes priority over a default policy.
+4. If multiple matching policies of the same class exist, the most recently updated policy is selected.
+5. If `updated_at` is equal, the policy with the greater `id` is selected.
+
+If no matching policy exists for a stake account, reward calculation still creates a reward row, but with:
+
+- `policy_id_used = null`
+- `status = "error_no_policy"`
+
+## Reward Calculation Flow
+
+Typical validator flow:
+
+1. Create validator and staker users
+2. Create reward policies
+3. Import validator stake snapshot for an epoch
+4. Import epoch reward context
+5. Calculate rewards for the epoch
+
+Typical staker flow:
+
+1. Authenticate as a staker
+2. Read calculated rewards for the selected epoch
+3. Read aggregated reward statistics
 
 ## Notes
 

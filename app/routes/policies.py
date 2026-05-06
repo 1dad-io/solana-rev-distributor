@@ -25,9 +25,23 @@ router = APIRouter(tags=["policies"])
     description=(
         "Creates a reward policy for the authenticated validator. "
         "A policy can be either individual for a specific staker or "
-        "default for all unmatched stakers."
+        "default for all unmatched stakers. "
+        "Creating a policy with a payload identical to an existing policy "
+        "of the same validator is not allowed."
     ),
     response_description="Created reward policy.",
+    responses={
+        409: {
+            "description": "An identical reward policy already exists.",
+            "content": {
+                "application/json": {
+                    "example": {
+                        "detail": "An identical reward policy already exists",
+                    }
+                }
+            },
+        }
+    },
     openapi_extra={
         "requestBody": {
             "content": {
@@ -106,9 +120,33 @@ def list_policies(
     description=(
         "Updates an existing reward policy of the authenticated validator. "
         "The policy can be switched between default and staker-specific modes, "
-        "activated or deactivated, and limited to an epoch range."
+        "activated or deactivated, and limited to an epoch range. "
+        "Updating a policy so that it becomes identical to another policy "
+        "of the same validator is not allowed."
     ),
     response_description="Updated reward policy.",
+    responses={
+        404: {
+            "description": "Reward policy not found.",
+            "content": {
+                "application/json": {
+                    "example": {
+                        "detail": "Reward policy not found",
+                    }
+                }
+            },
+        },
+        409: {
+            "description": "An identical reward policy already exists.",
+            "content": {
+                "application/json": {
+                    "example": {
+                        "detail": "An identical reward policy already exists",
+                    }
+                }
+            },
+        },
+    },
     openapi_extra={
         "requestBody": {
             "content": {

@@ -26,7 +26,14 @@ router = APIRouter(tags=["rewards"])
     description=(
         "Calculates validator reward distribution for the selected epoch. "
         "If epoch is omitted, the service resolves a default epoch "
-        "depending on the current user mode."
+        "depending on the current user mode. "
+        "Reward policy selection is deterministic: only active policies are considered, "
+        "the policy must match the epoch range, an individual policy for the staker "
+        "takes priority over a default policy, and if multiple matching policies of the "
+        "same class exist, the most recently updated policy is used, then the highest id "
+        "as a final tiebreaker. "
+        "If no matching policy exists for a stake account, the reward row is still created "
+        "with status error_no_policy."
     ),
     response_description="Calculated reward rows for the epoch.",
 )
