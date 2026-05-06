@@ -1207,3 +1207,194 @@ def test_existing_rewards_remain_readable_after_staker_deactivation(client) -> N
     assert len(validator_rewards) == 1
     assert validator_rewards[0]["status"] == "calculated"
     assert validator_rewards[0]["staker_withdrawer_pubkey"] == DEMO_STAKER_WITHDRAWER
+
+
+def test_inactive_staker_can_read_historical_rewards_and_stats(client) -> None:
+    validator_signup = {
+        "username": "test_validator_rewards_soft_disable_d",
+        "password": "secret123",
+        "role": "validator",
+        "alias": "Test Validator Soft Disable D",
+        "validator_identity_pubkey": "SoftDisableValidatorD1111111111111111",
+        "vote_account_pubkey": DEMO_VOTE_ACCOUNT,
+        "is_active": True,
+    }
+    client.post("/auth/signup", json=validator_signup)
+
+    staker_signup = {
+        "username": "test_staker_rewards_soft_disable_d",
+        "password": "secret123",
+        "role": "staker",
+        "alias": "Test Staker Soft Disable D",
+        "staker_withdrawer_pubkey": DEMO_STAKER_WITHDRAWER,
+        "is_active": True,
+    }
+    client.post("/auth/signup", json=staker_signup)
+
+    validator_login = client.post(
+        "/auth/login",
+        data={"username": "test_validator_rewards_soft_disable_d", "password": "secret123"},
+    )
+    validator_token = validator_login.json()["access_token"]
+
+    staker_login = client.post(
+        "/auth/login",
+        data={"username": "test_staker_rewards_soft_disable_d", "password": "secret123"},
+    )
+    staker_token = staker_login.json()["access_token"]
+
+    client.post(
+        "/validators/me/policies",
+        json={
+            "staker_withdrawer_pubkey": DEMO_STAKER_WITHDRAWER,
+            "is_default": False,
+            "mev_bps_back": 10000,
+            "block_rewards_bps_back": 5000,
+            "valid_from_epoch": None,
+            "valid_to_epoch": None,
+            "is_active": True,
+        },
+        headers={"Authorization": f"Bearer {validator_token}"},
+    )
+
+    write_demo_stakes_file()
+    write_demo_validator_rewards_file()
+
+    client.post(
+        "/validators/me/stakes/import",
+        json={"epoch": DEMO_EPOCH},
+        headers={"Authorization": f"Bearer {validator_token}"},
+    )
+    client.post(
+        "/validators/me/epochs/import",
+        json={
+            "epoch": DEMO_EPOCH,
+            "block_rewards_lamports": 1000000000,
+            "uptime_bps": 10000,
+        },
+        headers={"Authorization": f"Bearer {validator_token}"},
+    )
+
+    calc_response = client.post(
+        "/validators/me/rewards/calculate",
+        json={"epoch": DEMO_EPOCH, "force_recalculate": True},
+        headers={"Authorization": f"Bearer {validator_token}"},
+    )
+    assert calc_response.status_code == 201
+
+    deactivate_staker_response = client.put(
+        "/stakers/me",
+        json={"alias": "Disabled Staker D", "is_active": False},
+        headers={"Authorization": f"Bearer {staker_token}"},
+    )
+    assert deactivate_staker_response.status_code == 200
+    assert deactivate_staker_response.json()["is_active"] is False
+
+    rewards_response = client.get(
+        f"/stakers/me/rewards?epoch={DEMO_EPOCH}",
+        headers={"Authorization": f"Bearer {staker_token}"},
+    )
+    assert rewards_response.status_code == 200
+    rewards = rewards_response.json()
+    assert len(rewards) == 1
+    assert rewards[0]["status"] == "calculated"
+    assert rewards[0]["staker_withdrawer_pubkey"] == DEMO_STAKER_WITHDRAWER
+
+    stats_response = client.get(
+        f"/stakers/me/stats?epoch={DEMO_EPOCH}",
+        headers={"Authorization": f"Bearer {staker_token}"},
+    )
+    assert stats_response.status_code == 200
+    stats = stats_response.json()
+    assert stats["staker_withdrawer_pubkey"] == DEMO_STAKER_WITHDRAWER
+    assert stats["rewards_count"] == 1
+    assert stats["epochs_count"] == 1
+    assert stats["stake_accounts_count"] == 1
+    assert stats["gross_total_lamports"] > 0
+    assert stats["payable_total_lamports"] > 0
+
+
+def test_inactive_validator_can_read_historical_rewards(client) -> None:
+    validator_signup = {
+        "username": "test_validator_rewards_soft_disable_e",
+        "password": "secret123",
+        "role": "validator",
+        "alias": "Test Validator Soft Disable E",
+        "validator_identity_pubkey": "SoftDisableValidatorE1111111111111111",
+        "vote_account_pubkey": DEMO_VOTE_ACCOUNT,
+        "is_active": True,
+    }
+    client.post("/auth/signup", json=validator_signup)
+
+    staker_signup = {
+        "username": "test_staker_rewards_soft_disable_e",
+        "password": "secret123",
+        "role": "staker",
+        "alias": "Test Staker Soft Disable E",
+        "staker_withdrawer_pubkey": DEMO_STAKER_WITHDRAWER,
+        "is_active": True,
+    }
+    client.post("/auth/signup", json=staker_signup)
+
+    validator_login = client.post(
+        "/auth/login",
+        data={"username": "test_validator_rewards_soft_disable_e", "password": "secret123"},
+    )
+    validator_token = validator_login.json()["access_token"]
+
+    client.post(
+        "/validators/me/policies",
+        json={
+            "staker_withdrawer_pubkey": DEMO_STAKER_WITHDRAWER,
+            "is_default": False,
+            "mev_bps_back": 10000,
+            "block_rewards_bps_back": 5000,
+            "valid_from_epoch": None,
+            "valid_to_epoch": None,
+            "is_active": True,
+        },
+        headers={"Authorization": f"Bearer {validator_token}"},
+    )
+
+    write_demo_stakes_file()
+    write_demo_validator_rewards_file()
+
+    client.post(
+        "/validators/me/stakes/import",
+        json={"epoch": DEMO_EPOCH},
+        headers={"Authorization": f"Bearer {validator_token}"},
+    )
+    client.post(
+        "/validators/me/epochs/import",
+        json={
+            "epoch": DEMO_EPOCH,
+            "block_rewards_lamports": 1000000000,
+            "uptime_bps": 10000,
+        },
+        headers={"Authorization": f"Bearer {validator_token}"},
+    )
+
+    calc_response = client.post(
+        "/validators/me/rewards/calculate",
+        json={"epoch": DEMO_EPOCH, "force_recalculate": True},
+        headers={"Authorization": f"Bearer {validator_token}"},
+    )
+    assert calc_response.status_code == 201
+
+    deactivate_validator_response = client.put(
+        "/validators/me",
+        json={"alias": "Disabled Validator E", "is_active": False},
+        headers={"Authorization": f"Bearer {validator_token}"},
+    )
+    assert deactivate_validator_response.status_code == 200
+    assert deactivate_validator_response.json()["is_active"] is False
+
+    rewards_response = client.get(
+        f"/validators/me/rewards?epoch={DEMO_EPOCH}",
+        headers={"Authorization": f"Bearer {validator_token}"},
+    )
+    assert rewards_response.status_code == 200
+    rewards = rewards_response.json()
+    assert len(rewards) == 1
+    assert rewards[0]["status"] == "calculated"
+    assert rewards[0]["staker_withdrawer_pubkey"] == DEMO_STAKER_WITHDRAWER
