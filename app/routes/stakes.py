@@ -5,9 +5,9 @@ from fastapi import APIRouter, Depends, HTTPException, Query, status
 from app.config import settings
 from app.db import get_db
 from app.dependencies import (
+    get_current_active_validator_record,
     get_current_validator_identity,
-    get_current_validator_record,
-    require_validator,
+    require_active_validator,
 )
 from app.models.stake_account import StakeAccount
 from app.models.stake_snapshot import StakeSnapshot
@@ -35,8 +35,8 @@ router = APIRouter(prefix="/validators/me/stakes", tags=["stakes"])
 def import_stakes(
     payload: StakeImportRequest,
     db: Session = Depends(get_db),
-    current_user: User = Depends(require_validator),
-    validator: Validator = Depends(get_current_validator_record),
+    current_user: User = Depends(require_active_validator),
+    validator: Validator = Depends(get_current_active_validator_record),
 ) -> StakeSnapshot:
     try:
         resolved_epoch = resolve_epoch_for_username(

@@ -6,9 +6,9 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from app.config import settings
 from app.db import get_db
 from app.dependencies import (
+    get_current_active_validator_record,
     get_current_validator_identity,
-    get_current_validator_record,
-    require_validator,
+    require_active_validator,
 )
 from app.models.epoch_reward_context import EpochRewardContext
 from app.models.user import User
@@ -35,8 +35,8 @@ router = APIRouter(prefix="/validators/me/epochs", tags=["epochs"])
 def import_epoch_context(
     payload: EpochImportRequest,
     db: Session = Depends(get_db),
-    current_user: User = Depends(require_validator),
-    validator: Validator = Depends(get_current_validator_record),
+    current_user: User = Depends(require_active_validator),
+    validator: Validator = Depends(get_current_active_validator_record),
 ) -> EpochRewardContext:
     try:
         resolved_epoch = resolve_epoch_for_username(

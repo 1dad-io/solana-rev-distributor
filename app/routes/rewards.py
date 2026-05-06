@@ -5,7 +5,9 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from app.config import settings
 from app.db import get_db
 from app.dependencies import (
+    get_current_active_validator_identity,
     get_current_validator_identity,
+    require_active_validator,
     require_staker,
     require_validator,
 )
@@ -40,8 +42,8 @@ router = APIRouter(tags=["rewards"])
 def calculate_rewards(
     payload: RewardCalculationRequest,
     db: Session = Depends(get_db),
-    current_user: User = Depends(require_validator),
-    validator_identity_pubkey: str = Depends(get_current_validator_identity),
+    current_user: User = Depends(require_active_validator),
+    validator_identity_pubkey: str = Depends(get_current_active_validator_identity),
 ) -> list[Reward]:
     try:
         resolved_epoch = resolve_epoch_for_username(

@@ -43,6 +43,15 @@ def require_validator(current_user: User = Depends(get_current_user)) -> User:
     return current_user
 
 
+def require_active_validator(current_user: User = Depends(require_validator)) -> User:
+    if not current_user.is_active:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Inactive validator",
+        )
+    return current_user
+
+
 def require_staker(current_user: User = Depends(get_current_user)) -> User:
     if current_user.role != "staker":
         raise HTTPException(
@@ -64,9 +73,47 @@ def get_current_validator_identity(
     return validator_identity_pubkey
 
 
+def get_current_active_validator_identity(
+    current_user: User = Depends(require_active_validator),
+) -> str:
+    validator_identity_pubkey = current_user.validator_identity_pubkey
+    if not validator_identity_pubkey:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Validator profile not found",
+        )
+    return validator_identity_pubkey
+
+
 def get_current_validator_record(
     db: Session = Depends(get_db),
     current_user: User = Depends(require_validator),
+) -> Validator:
+    validator_identity_pubkey = current_user.validator_identity_pubkey
+    if not validator_identity_pubkey:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Validator profile not found",
+        )
+
+    validator = (
+        db.query(Validator)
+        .filter(Validator.identity_pubkey == validator_identity_pubkey)
+        .filter(Validator.cluster == settings.app_cluster)
+        .first()
+    )
+    if validator is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Validator record not found",
+        )
+
+    return validator
+
+
+def get_current_active_validator_record(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_active_validator),
 ) -> Validator:
     validator_identity_pubkey = current_user.validator_identity_pubkey
     if not validator_identity_pubkey:

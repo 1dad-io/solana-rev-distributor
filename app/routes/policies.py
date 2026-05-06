@@ -4,7 +4,10 @@ from fastapi import APIRouter, Depends, HTTPException, status
 
 from app.config import settings
 from app.db import get_db
-from app.dependencies import get_current_validator_identity
+from app.dependencies import (
+    get_current_active_validator_identity,
+    get_current_validator_identity,
+)
 from app.models.reward_policy import RewardPolicy
 from app.schemas.examples import POLICY_REQUEST_EXAMPLES
 from app.schemas.policy import (
@@ -55,7 +58,7 @@ router = APIRouter(tags=["policies"])
 def create_policy(
     payload: RewardPolicyCreate,
     db: Session = Depends(get_db),
-    validator_identity_pubkey: str = Depends(get_current_validator_identity),
+    validator_identity_pubkey: str = Depends(get_current_active_validator_identity),
 ) -> RewardPolicy:
     duplicate_policy = find_duplicate_policy(
         db,
@@ -161,7 +164,7 @@ def update_policy(
     policy_id: int,
     payload: RewardPolicyUpdate,
     db: Session = Depends(get_db),
-    validator_identity_pubkey: str = Depends(get_current_validator_identity),
+    validator_identity_pubkey: str = Depends(get_current_active_validator_identity),
 ) -> RewardPolicy:
     policy = (
         db.query(RewardPolicy)
