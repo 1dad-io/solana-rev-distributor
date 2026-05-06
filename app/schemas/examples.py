@@ -20,6 +20,35 @@ DEMO_BLOCK_REWARDS_LAMPORTS = 1000000000
 DEMO_MEV_REVENUE_LAMPORTS = 500000000
 DEMO_UPTIME_BPS = 10000
 
+SIGNUP_REQUEST_EXAMPLES = {
+    "validator": {
+        "summary": "Validator signup",
+        "value": {
+            "username": DEMO_USERNAME_VALIDATOR,
+            "password": DEMO_PASSWORD,
+            "role": "validator",
+            "alias": DEMO_ALIAS_VALIDATOR,
+            "validator_identity_pubkey": DEMO_VALIDATOR_IDENTITY,
+            "vote_account_pubkey": DEMO_VOTE_ACCOUNT,
+            "staker_withdrawer_pubkey": None,
+            "is_active": True,
+        },
+    },
+    "staker": {
+        "summary": "Staker signup",
+        "value": {
+            "username": DEMO_USERNAME_STAKER,
+            "password": DEMO_PASSWORD,
+            "role": "staker",
+            "alias": DEMO_ALIAS_STAKER,
+            "validator_identity_pubkey": None,
+            "vote_account_pubkey": None,
+            "staker_withdrawer_pubkey": DEMO_STAKER_WITHDRAWER,
+            "is_active": True,
+        },
+    },
+}
+
 POLICY_REQUEST_EXAMPLES = {
     "default_policy": {
         "summary": "Default policy",
