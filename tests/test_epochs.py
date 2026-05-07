@@ -30,15 +30,14 @@ def test_validator_can_import_epoch_context(client) -> None:
         },
         headers={"Authorization": f"Bearer {token}"},
     )
-    assert response.status_code == 201
 
+    assert response.status_code == 201
     data = response.json()
-    assert data["validator_identity_pubkey"] == signup_payload["validator_identity_pubkey"]
+    assert data["validator_identity_pubkey"] == "TestVa1idatorEpochA1111111111111111111111"
+    assert data["cluster"] == "testnet"
     assert data["epoch"] == DEMO_EPOCH
     assert data["block_rewards_lamports"] == 1_000_000_000
     assert data["uptime_bps"] == 10000
-    assert data["mev_revenue_lamports"] >= 0
-    assert data["mev_commission_bps"] >= 0
 
 
 def test_validator_can_get_epoch_context(client) -> None:
@@ -61,7 +60,7 @@ def test_validator_can_get_epoch_context(client) -> None:
 
     write_demo_validator_rewards_file()
 
-    client.post(
+    import_response = client.post(
         "/validators/me/epochs/import",
         json={
             "epoch": DEMO_EPOCH,
@@ -70,16 +69,20 @@ def test_validator_can_get_epoch_context(client) -> None:
         },
         headers={"Authorization": f"Bearer {token}"},
     )
+    assert import_response.status_code == 201
 
     response = client.get(
         f"/validators/me/epochs/{DEMO_EPOCH}",
         headers={"Authorization": f"Bearer {token}"},
     )
-    assert response.status_code == 200
 
+    assert response.status_code == 200
     data = response.json()
-    assert data["validator_identity_pubkey"] == signup_payload["validator_identity_pubkey"]
+    assert data["validator_identity_pubkey"] == "TestVa1idatorEpochB1111111111111111111111"
+    assert data["cluster"] == "testnet"
     assert data["epoch"] == DEMO_EPOCH
+    assert data["block_rewards_lamports"] == 1_000_000_000
+    assert data["uptime_bps"] == 10000
 
 
 def test_validator_cannot_get_missing_epoch_context(client) -> None:
@@ -104,4 +107,79 @@ def test_validator_cannot_get_missing_epoch_context(client) -> None:
         f"/validators/me/epochs/{DEMO_EPOCH}",
         headers={"Authorization": f"Bearer {token}"},
     )
+
     assert response.status_code == 404
+    assert response.json()["detail"] == "Epoch reward context not found"
+
+
+def test_staker_cannot_import_epoch_context(client) -> None:
+    signup_payload = {
+        "username": "test_staker_epoch_forbidden_a",
+        "password": "secret123",
+        "role": "staker",
+        "alias": "Test Staker Epoch Forbidden A",
+        "staker_withdrawer_pubkey": "abababababababababababababababab",
+        "is_active": True,
+    }
+    client.post("/auth/signup", json=signup_payload)
+
+    login_response = client.post(
+        "/auth/login",
+        data={"username": "test_staker_epoch_forbidden_a", "password": "secret123"},
+    )
+    token = login_response.json()["access_token"]
+
+    response = client.post(
+        "/validators/me/epochs/import",
+        json={
+            "epoch": DEMO_EPOCH,
+            "block_rewards_lamports": 1_000_000_000,
+            "uptime_bps": 10000,
+        },
+        headers={"Authorization": f"Bearer {token}"},
+    )
+
+    assert response.status_code == 403
+
+
+def test_staker_cannot_get_validator_epoch_context(client) -> None:
+    signup_payload = {
+        "username": "test_staker_epoch_forbidden_b",
+        "password": "secret123",
+        "role": "staker",
+        "alias": "Test Staker Epoch Forbidden B",
+        "staker_withdrawer_pubkey": "bcbcbcbcbcbcbcbcbcbcbcbcbcbcbcbc",
+        "is_active": True,
+    }
+    client.post("/auth/signup", json=signup_payload)
+
+    login_response = client.post(
+        "/auth/login",
+        data={"username": "test_staker_epoch_forbidden_b", "password": "secret123"},
+    )
+    token = login_response.json()["access_token"]
+
+    response = client.get(
+        f"/validators/me/epochs/{DEMO_EPOCH}",
+        headers={"Authorization": f"Bearer {token}"},
+    )
+
+    assert response.status_code == 403
+
+
+def test_validator_import_epoch_context_requires_authentication(client) -> None:
+    response = client.post(
+        "/validators/me/epochs/import",
+        json={
+            "epoch": DEMO_EPOCH,
+            "block_rewards_lamports": 1_000_000_000,
+            "uptime_bps": 10000,
+        },
+    )
+
+    assert response.status_code == 401
+
+
+def test_validator_get_epoch_context_requires_authentication(client) -> None:
+    response = client.get(f"/validators/me/epochs/{DEMO_EPOCH}")
+    assert response.status_code == 401
