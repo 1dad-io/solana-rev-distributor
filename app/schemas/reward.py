@@ -2,7 +2,7 @@ from datetime import datetime
 
 from pydantic import BaseModel, ConfigDict, Field
 
-from app.schemas.examples import (
+from app.demo import (
     DEMO_BLOCK_REWARDS_BPS_BACK,
     DEMO_EPOCH,
     DEMO_MEV_BPS_BACK,

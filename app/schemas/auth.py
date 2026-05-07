@@ -2,7 +2,7 @@ from typing import Literal
 
 from pydantic import BaseModel, Field, field_validator, model_validator
 
-from app.schemas.examples import (
+from app.demo import (
     DEMO_ALIAS_VALIDATOR,
     DEMO_PASSWORD,
     DEMO_USERNAME_VALIDATOR,

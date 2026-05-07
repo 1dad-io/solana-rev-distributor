@@ -2,7 +2,7 @@ from datetime import datetime
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 
-from app.schemas.examples import (
+from app.demo import (
     DEMO_BLOCK_REWARDS_BPS_BACK,
     DEMO_MEV_BPS_BACK,
     DEMO_STAKER_WITHDRAWER,

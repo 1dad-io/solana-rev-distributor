@@ -2,7 +2,7 @@ from datetime import datetime
 
 from pydantic import BaseModel, ConfigDict, Field
 
-from app.schemas.examples import (
+from app.demo import (
     DEMO_EPOCH,
     DEMO_STAKE_ACCOUNT,
     DEMO_STAKER_WITHDRAWER,
