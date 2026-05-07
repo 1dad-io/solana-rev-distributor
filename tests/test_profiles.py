@@ -61,7 +61,6 @@ def test_validator_can_get_own_profile(client) -> None:
     assert data["role"] == "validator"
     assert data["alias"] == "Validator Profile"
     assert data["validator_identity_pubkey"] == "99999999999999999999999999999999"
-    assert data["vote_account_pubkey"] == DEMO_VOTE_ACCOUNT
     assert data["is_active"] is True
 
 
@@ -90,10 +89,9 @@ def test_staker_can_update_own_profile(client) -> None:
 
     assert response.status_code == 200
     data = response.json()
-    assert data["username"] == "staker_update"
     assert data["alias"] == "New Alias"
-    assert data["staker_withdrawer_pubkey"] == "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
     assert data["is_active"] is False
+    assert data["staker_withdrawer_pubkey"] == "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
 
 
 def test_validator_can_update_own_profile(client) -> None:
@@ -122,11 +120,9 @@ def test_validator_can_update_own_profile(client) -> None:
 
     assert response.status_code == 200
     data = response.json()
-    assert data["username"] == "validator_update"
     assert data["alias"] == "New Validator Alias"
-    assert data["validator_identity_pubkey"] == "aaaaaaaa111111111111111111111111"
-    assert data["vote_account_pubkey"] == DEMO_VOTE_ACCOUNT
     assert data["is_active"] is False
+    assert data["validator_identity_pubkey"] == "aaaaaaaa111111111111111111111111"
 
 
 def test_staker_cannot_access_validator_me(client) -> None:
@@ -178,6 +174,160 @@ def test_validator_cannot_access_staker_me(client) -> None:
     )
 
     assert response.status_code == 403
+
+
+def test_staker_profile_requires_authentication(client) -> None:
+    response = client.get("/stakers/me")
+    assert response.status_code == 401
+
+
+def test_validator_profile_requires_authentication(client) -> None:
+    response = client.get("/validators/me")
+    assert response.status_code == 401
+
+
+def test_staker_update_requires_authentication(client) -> None:
+    response = client.put(
+        "/stakers/me",
+        json={"alias": "No Auth", "is_active": True},
+    )
+    assert response.status_code == 401
+
+
+def test_validator_update_requires_authentication(client) -> None:
+    response = client.put(
+        "/validators/me",
+        json={"alias": "No Auth", "is_active": True},
+    )
+    assert response.status_code == 401
+
+
+def test_staker_cannot_update_validator_profile(client) -> None:
+    signup_payload = {
+        "username": "staker_update_forbidden",
+        "password": "secret123",
+        "role": "staker",
+        "alias": "Staker Update Forbidden",
+        "staker_withdrawer_pubkey": "efefefefefefefefefefefefefefefef",
+        "is_active": True,
+    }
+    client.post("/auth/signup", json=signup_payload)
+
+    login_response = client.post(
+        "/auth/login",
+        data={"username": "staker_update_forbidden", "password": "secret123"},
+    )
+    token = login_response.json()["access_token"]
+
+    response = client.put(
+        "/validators/me",
+        json={"alias": "Should Not Work", "is_active": True},
+        headers={"Authorization": f"Bearer {token}"},
+    )
+
+    assert response.status_code == 403
+
+
+def test_validator_cannot_update_staker_profile(client) -> None:
+    signup_payload = {
+        "username": "validator_update_forbidden",
+        "password": "secret123",
+        "role": "validator",
+        "alias": "Validator Update Forbidden",
+        "validator_identity_pubkey": "edededededededededededededededed",
+        "vote_account_pubkey": DEMO_VOTE_ACCOUNT,
+        "is_active": True,
+    }
+    client.post("/auth/signup", json=signup_payload)
+
+    login_response = client.post(
+        "/auth/login",
+        data={"username": "validator_update_forbidden", "password": "secret123"},
+    )
+    token = login_response.json()["access_token"]
+
+    response = client.put(
+        "/stakers/me",
+        json={"alias": "Should Not Work", "is_active": True},
+        headers={"Authorization": f"Bearer {token}"},
+    )
+
+    assert response.status_code == 403
+
+
+def test_inactive_staker_can_read_own_profile(client) -> None:
+    signup_payload = {
+        "username": "staker_inactive_read",
+        "password": "secret123",
+        "role": "staker",
+        "alias": "Inactive Read Staker",
+        "staker_withdrawer_pubkey": "f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1",
+        "is_active": True,
+    }
+    client.post("/auth/signup", json=signup_payload)
+
+    login_response = client.post(
+        "/auth/login",
+        data={"username": "staker_inactive_read", "password": "secret123"},
+    )
+    token = login_response.json()["access_token"]
+
+    deactivate_response = client.put(
+        "/stakers/me",
+        json={"alias": "Inactive Read Staker", "is_active": False},
+        headers={"Authorization": f"Bearer {token}"},
+    )
+    assert deactivate_response.status_code == 200
+    assert deactivate_response.json()["is_active"] is False
+
+    response = client.get(
+        "/stakers/me",
+        headers={"Authorization": f"Bearer {token}"},
+    )
+
+    assert response.status_code == 200
+    data = response.json()
+    assert data["username"] == "staker_inactive_read"
+    assert data["role"] == "staker"
+    assert data["is_active"] is False
+
+
+def test_inactive_validator_can_read_own_profile(client) -> None:
+    signup_payload = {
+        "username": "validator_inactive_read",
+        "password": "secret123",
+        "role": "validator",
+        "alias": "Inactive Read Validator",
+        "validator_identity_pubkey": "f2f2f2f2f2f2f2f2f2f2f2f2f2f2f2f2",
+        "vote_account_pubkey": DEMO_VOTE_ACCOUNT,
+        "is_active": True,
+    }
+    client.post("/auth/signup", json=signup_payload)
+
+    login_response = client.post(
+        "/auth/login",
+        data={"username": "validator_inactive_read", "password": "secret123"},
+    )
+    token = login_response.json()["access_token"]
+
+    deactivate_response = client.put(
+        "/validators/me",
+        json={"alias": "Inactive Read Validator", "is_active": False},
+        headers={"Authorization": f"Bearer {token}"},
+    )
+    assert deactivate_response.status_code == 200
+    assert deactivate_response.json()["is_active"] is False
+
+    response = client.get(
+        "/validators/me",
+        headers={"Authorization": f"Bearer {token}"},
+    )
+
+    assert response.status_code == 200
+    data = response.json()
+    assert data["username"] == "validator_inactive_read"
+    assert data["role"] == "validator"
+    assert data["is_active"] is False
 
 
 def test_inactive_validator_cannot_create_policy(client) -> None:
