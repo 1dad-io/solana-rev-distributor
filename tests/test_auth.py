@@ -1,3 +1,6 @@
+from tests.conftest import DEMO_VOTE_ACCOUNT
+
+
 def test_signup_validator(client) -> None:
     payload = {
         "username": "validator1",
@@ -5,7 +8,7 @@ def test_signup_validator(client) -> None:
         "role": "validator",
         "alias": "Validator User",
         "validator_identity_pubkey": "33333333333333333333333333333333",
-        "vote_account_pubkey": "VoteAcc111111111111111111111111111111111111",
+        "vote_account_pubkey": DEMO_VOTE_ACCOUNT,
         "is_active": True,
     }
 
@@ -17,7 +20,6 @@ def test_signup_validator(client) -> None:
     assert data["role"] == "validator"
     assert data["alias"] == "Validator User"
     assert data["validator_identity_pubkey"] == "33333333333333333333333333333333"
-    assert data["staker_withdrawer_pubkey"] is None
     assert data["is_active"] is True
 
 
@@ -38,7 +40,6 @@ def test_signup_staker(client) -> None:
     assert data["username"] == "staker1"
     assert data["role"] == "staker"
     assert data["alias"] == "Staker User"
-    assert data["validator_identity_pubkey"] is None
     assert data["staker_withdrawer_pubkey"] == "44444444444444444444444444444444"
     assert data["is_active"] is True
 
@@ -75,6 +76,72 @@ def test_signup_duplicate_username_fails(client) -> None:
     )
 
 
+def test_signup_duplicate_validator_identity_pubkey_fails(client) -> None:
+    first_response = client.post(
+        "/auth/signup",
+        json={
+            "username": "duplicate_validator_a",
+            "password": "secret123",
+            "role": "validator",
+            "alias": "Duplicate Validator A",
+            "validator_identity_pubkey": "81818181818181818181818181818181",
+            "vote_account_pubkey": DEMO_VOTE_ACCOUNT,
+            "is_active": True,
+        },
+    )
+    assert first_response.status_code == 201
+
+    second_response = client.post(
+        "/auth/signup",
+        json={
+            "username": "duplicate_validator_b",
+            "password": "secret123",
+            "role": "validator",
+            "alias": "Duplicate Validator B",
+            "validator_identity_pubkey": "81818181818181818181818181818181",
+            "vote_account_pubkey": "VoteAcc333333333333333333333333333333333333",
+            "is_active": True,
+        },
+    )
+    assert second_response.status_code == 409
+    assert (
+        second_response.json()["detail"]
+        == "User or validator with the same username or public key already exists"
+    )
+
+
+def test_signup_duplicate_staker_withdrawer_pubkey_fails(client) -> None:
+    first_response = client.post(
+        "/auth/signup",
+        json={
+            "username": "duplicate_staker_a",
+            "password": "secret123",
+            "role": "staker",
+            "alias": "Duplicate Staker A",
+            "staker_withdrawer_pubkey": "91919191919191919191919191919191",
+            "is_active": True,
+        },
+    )
+    assert first_response.status_code == 201
+
+    second_response = client.post(
+        "/auth/signup",
+        json={
+            "username": "duplicate_staker_b",
+            "password": "secret123",
+            "role": "staker",
+            "alias": "Duplicate Staker B",
+            "staker_withdrawer_pubkey": "91919191919191919191919191919191",
+            "is_active": True,
+        },
+    )
+    assert second_response.status_code == 409
+    assert (
+        second_response.json()["detail"]
+        == "User or validator with the same username or public key already exists"
+    )
+
+
 def test_login_success(client) -> None:
     signup_payload = {
         "username": "validator2",
@@ -82,7 +149,7 @@ def test_login_success(client) -> None:
         "role": "validator",
         "alias": "Validator Two",
         "validator_identity_pubkey": "55555555555555555555555555555555",
-        "vote_account_pubkey": "VoteAcc333333333333333333333333333333333333",
+        "vote_account_pubkey": "VoteAcc111111111111111111111111111111111111",
         "is_active": True,
     }
     client.post("/auth/signup", json=signup_payload)
@@ -150,19 +217,26 @@ def test_auth_me_with_token(client) -> None:
         "/auth/me",
         headers={"Authorization": f"Bearer {token}"},
     )
-    assert response.status_code == 200
 
+    assert response.status_code == 200
     data = response.json()
     assert data["username"] == "staker2"
     assert data["role"] == "staker"
     assert data["alias"] == "Staker Two"
-    assert data["validator_identity_pubkey"] is None
     assert data["staker_withdrawer_pubkey"] == "77777777777777777777777777777777"
     assert data["is_active"] is True
 
 
-def test_auth_me_without_token_fails(client) -> None:
+def test_auth_me_requires_authentication(client) -> None:
     response = client.get("/auth/me")
+    assert response.status_code == 401
+
+
+def test_auth_me_rejects_invalid_token(client) -> None:
+    response = client.get(
+        "/auth/me",
+        headers={"Authorization": "Bearer invalid-token"},
+    )
     assert response.status_code == 401
 
 
@@ -197,6 +271,7 @@ def test_inactive_staker_cannot_login(client) -> None:
         data={"username": "staker_inactive_login", "password": "secret123"},
     )
     assert second_login_response.status_code == 403
+    assert second_login_response.json()["detail"] == "Inactive user"
 
 
 def test_inactive_validator_cannot_login(client) -> None:
@@ -231,3 +306,4 @@ def test_inactive_validator_cannot_login(client) -> None:
         data={"username": "validator_inactive_login", "password": "secret123"},
     )
     assert second_login_response.status_code == 403
+    assert second_login_response.json()["detail"] == "Inactive user"
