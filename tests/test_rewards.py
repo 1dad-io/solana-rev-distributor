@@ -5,15 +5,18 @@ from tests.conftest import (
     write_demo_stakes_file,
     write_demo_validator_rewards_file,
 )
+from tests.pubkeys import make_validator_pubkey
 
 
 def test_validator_can_calculate_rewards_and_staker_can_view_them(client) -> None:
+    validator_identity_pubkey = make_validator_pubkey(1)
+
     validator_signup = {
         "username": "test_validator_rewards_a",
         "password": "secret123",
         "role": "validator",
         "alias": "Test Validator Rewards A",
-        "validator_identity_pubkey": "TestVa1idatorRewardsA11111111111111111111",
+        "validator_identity_pubkey": validator_identity_pubkey,
         "vote_account_pubkey": DEMO_VOTE_ACCOUNT,
         "is_active": True,
     }
@@ -125,7 +128,7 @@ def test_reward_without_policy_creates_error_status(client) -> None:
         "password": "secret123",
         "role": "validator",
         "alias": "Test Validator Rewards B",
-        "validator_identity_pubkey": "TestVa1idatorRewardsB11111111111111111111",
+        "validator_identity_pubkey": make_validator_pubkey(2),
         "vote_account_pubkey": DEMO_VOTE_ACCOUNT,
         "is_active": True,
     }
@@ -186,7 +189,7 @@ def test_reward_uses_individual_policy_over_default_policy(client) -> None:
         "password": "secret123",
         "role": "validator",
         "alias": "Test Validator Rewards Priority A",
-        "validator_identity_pubkey": "PriorityValidatorA11111111111111111111",
+        "validator_identity_pubkey": make_validator_pubkey(3),
         "vote_account_pubkey": DEMO_VOTE_ACCOUNT,
         "is_active": True,
     }
@@ -274,7 +277,7 @@ def test_reward_uses_default_policy_when_individual_policy_absent(client) -> Non
         "password": "secret123",
         "role": "validator",
         "alias": "Test Validator Rewards Priority B",
-        "validator_identity_pubkey": "PriorityValidatorB11111111111111111111",
+        "validator_identity_pubkey": make_validator_pubkey(4),
         "vote_account_pubkey": DEMO_VOTE_ACCOUNT,
         "is_active": True,
     }
@@ -348,7 +351,7 @@ def test_reward_ignores_inactive_individual_policy_and_uses_default_policy(clien
         "password": "secret123",
         "role": "validator",
         "alias": "Test Validator Rewards Priority C",
-        "validator_identity_pubkey": "PriorityValidatorC11111111111111111111",
+        "validator_identity_pubkey": make_validator_pubkey(5),
         "vote_account_pubkey": DEMO_VOTE_ACCOUNT,
         "is_active": True,
     }
@@ -438,7 +441,7 @@ def test_reward_uses_epoch_limited_individual_policy_for_matching_epoch(client) 
         "password": "secret123",
         "role": "validator",
         "alias": "Test Validator Rewards Priority D",
-        "validator_identity_pubkey": "PriorityValidatorD11111111111111111111",
+        "validator_identity_pubkey": make_validator_pubkey(6),
         "vote_account_pubkey": DEMO_VOTE_ACCOUNT,
         "is_active": True,
     }
@@ -526,7 +529,7 @@ def test_reward_falls_back_to_default_policy_outside_individual_policy_epoch_ran
         "password": "secret123",
         "role": "validator",
         "alias": "Test Validator Rewards Priority E",
-        "validator_identity_pubkey": "PriorityValidatorE11111111111111111111",
+        "validator_identity_pubkey": make_validator_pubkey(7),
         "vote_account_pubkey": DEMO_VOTE_ACCOUNT,
         "is_active": True,
     }
@@ -614,7 +617,7 @@ def test_reward_uses_most_recent_matching_individual_policy(client) -> None:
         "password": "secret123",
         "role": "validator",
         "alias": "Test Validator Rewards Priority F",
-        "validator_identity_pubkey": "PriorityValidatorF11111111111111111111",
+        "validator_identity_pubkey": make_validator_pubkey(8),
         "vote_account_pubkey": DEMO_VOTE_ACCOUNT,
         "is_active": True,
     }
@@ -708,7 +711,7 @@ def test_reward_uses_updated_individual_policy_as_most_recent_match(client) -> N
         "password": "secret123",
         "role": "validator",
         "alias": "Test Validator Rewards Priority G",
-        "validator_identity_pubkey": "PriorityValidatorG11111111111111111111",
+        "validator_identity_pubkey": make_validator_pubkey(9),
         "vote_account_pubkey": DEMO_VOTE_ACCOUNT,
         "is_active": True,
     }
@@ -818,7 +821,7 @@ def test_reward_uses_most_recent_matching_default_policy(client) -> None:
         "password": "secret123",
         "role": "validator",
         "alias": "Test Validator Rewards Priority H",
-        "validator_identity_pubkey": "PriorityValidatorH11111111111111111111",
+        "validator_identity_pubkey": make_validator_pubkey(1),
         "vote_account_pubkey": DEMO_VOTE_ACCOUNT,
         "is_active": True,
     }
@@ -912,7 +915,7 @@ def test_reward_recalculation_falls_back_to_default_after_individual_policy_deac
         "password": "secret123",
         "role": "validator",
         "alias": "Test Validator Soft Disable A",
-        "validator_identity_pubkey": "SoftDisableValidatorA1111111111111111",
+        "validator_identity_pubkey": make_validator_pubkey(3),
         "vote_account_pubkey": DEMO_VOTE_ACCOUNT,
         "is_active": True,
     }
@@ -1031,7 +1034,7 @@ def test_existing_rewards_remain_readable_after_validator_deactivation(client) -
         "password": "secret123",
         "role": "validator",
         "alias": "Test Validator Soft Disable B",
-        "validator_identity_pubkey": "SoftDisableValidatorB1111111111111111",
+        "validator_identity_pubkey": make_validator_pubkey(5),
         "vote_account_pubkey": DEMO_VOTE_ACCOUNT,
         "is_active": True,
     }
@@ -1123,7 +1126,7 @@ def test_existing_rewards_remain_readable_after_staker_deactivation(client) -> N
         "password": "secret123",
         "role": "validator",
         "alias": "Test Validator Soft Disable C",
-        "validator_identity_pubkey": "SoftDisableValidatorC1111111111111111",
+        "validator_identity_pubkey": make_validator_pubkey(7),
         "vote_account_pubkey": DEMO_VOTE_ACCOUNT,
         "is_active": True,
     }
@@ -1215,7 +1218,7 @@ def test_inactive_staker_can_read_historical_rewards_and_stats(client) -> None:
         "password": "secret123",
         "role": "validator",
         "alias": "Test Validator Soft Disable D",
-        "validator_identity_pubkey": "SoftDisableValidatorD1111111111111111",
+        "validator_identity_pubkey": make_validator_pubkey(8),
         "vote_account_pubkey": DEMO_VOTE_ACCOUNT,
         "is_active": True,
     }
@@ -1320,7 +1323,7 @@ def test_inactive_validator_can_read_historical_rewards(client) -> None:
         "password": "secret123",
         "role": "validator",
         "alias": "Test Validator Soft Disable E",
-        "validator_identity_pubkey": "SoftDisableValidatorE1111111111111111",
+        "validator_identity_pubkey": make_validator_pubkey(9),
         "vote_account_pubkey": DEMO_VOTE_ACCOUNT,
         "is_active": True,
     }

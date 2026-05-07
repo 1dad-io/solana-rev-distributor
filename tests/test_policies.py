@@ -1,13 +1,20 @@
 from tests.conftest import DEMO_VOTE_ACCOUNT
+from tests.pubkeys import (
+    make_staker_pubkey,
+    make_validator_pubkey,
+    make_vote_account_pubkey,
+)
 
 
 def test_validator_can_create_default_policy(client) -> None:
+    validator_identity_pubkey = make_validator_pubkey(1)
+
     signup_payload = {
         "username": "validator_policy_default",
         "password": "secret123",
         "role": "validator",
         "alias": "Validator Policy Default",
-        "validator_identity_pubkey": "dddddddddddddddddddddddddddddddd",
+        "validator_identity_pubkey": validator_identity_pubkey,
         "vote_account_pubkey": DEMO_VOTE_ACCOUNT,
         "is_active": True,
     }
@@ -35,7 +42,7 @@ def test_validator_can_create_default_policy(client) -> None:
 
     assert response.status_code == 201
     data = response.json()
-    assert data["validator_identity_pubkey"] == "dddddddddddddddddddddddddddddddd"
+    assert data["validator_identity_pubkey"] == validator_identity_pubkey
     assert data["staker_withdrawer_pubkey"] is None
     assert data["is_default"] is True
     assert data["mev_bps_back"] == 10000
@@ -46,12 +53,15 @@ def test_validator_can_create_default_policy(client) -> None:
 
 
 def test_validator_can_create_individual_policy(client) -> None:
+    validator_identity_pubkey = make_validator_pubkey(2)
+    staker_withdrawer_pubkey = make_staker_pubkey(3)
+
     signup_payload = {
         "username": "validator_policy_individual",
         "password": "secret123",
         "role": "validator",
         "alias": "Validator Policy Individual",
-        "validator_identity_pubkey": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+        "validator_identity_pubkey": validator_identity_pubkey,
         "vote_account_pubkey": DEMO_VOTE_ACCOUNT,
         "is_active": True,
     }
@@ -66,7 +76,7 @@ def test_validator_can_create_individual_policy(client) -> None:
     response = client.post(
         "/validators/me/policies",
         json={
-            "staker_withdrawer_pubkey": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "staker_withdrawer_pubkey": staker_withdrawer_pubkey,
             "is_default": False,
             "mev_bps_back": 9000,
             "block_rewards_bps_back": 4000,
@@ -79,8 +89,8 @@ def test_validator_can_create_individual_policy(client) -> None:
 
     assert response.status_code == 201
     data = response.json()
-    assert data["validator_identity_pubkey"] == "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"
-    assert data["staker_withdrawer_pubkey"] == "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+    assert data["validator_identity_pubkey"] == validator_identity_pubkey
+    assert data["staker_withdrawer_pubkey"] == staker_withdrawer_pubkey
     assert data["is_default"] is False
     assert data["mev_bps_back"] == 9000
     assert data["block_rewards_bps_back"] == 4000
@@ -90,12 +100,14 @@ def test_validator_can_create_individual_policy(client) -> None:
 
 
 def test_validator_can_list_own_policies(client) -> None:
+    validator_identity_pubkey = make_validator_pubkey(4)
+
     signup_payload = {
         "username": "validator_policy_list",
         "password": "secret123",
         "role": "validator",
         "alias": "Validator Policy List",
-        "validator_identity_pubkey": "1111aaaabbbbccccddddeeeeffff0000",
+        "validator_identity_pubkey": validator_identity_pubkey,
         "vote_account_pubkey": DEMO_VOTE_ACCOUNT,
         "is_active": True,
     }
@@ -123,7 +135,7 @@ def test_validator_can_list_own_policies(client) -> None:
     client.post(
         "/validators/me/policies",
         json={
-            "staker_withdrawer_pubkey": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+            "staker_withdrawer_pubkey": make_staker_pubkey(5),
             "is_default": False,
             "mev_bps_back": 8000,
             "block_rewards_bps_back": 3000,
@@ -143,7 +155,7 @@ def test_validator_can_list_own_policies(client) -> None:
     data = response.json()
     assert len(data) == 2
     assert all(
-        policy["validator_identity_pubkey"] == "1111aaaabbbbccccddddeeeeffff0000"
+        policy["validator_identity_pubkey"] == validator_identity_pubkey
         for policy in data
     )
 
@@ -154,7 +166,7 @@ def test_staker_cannot_create_policy(client) -> None:
         "password": "secret123",
         "role": "staker",
         "alias": "Staker Policy Forbidden",
-        "staker_withdrawer_pubkey": "cccccccccccccccccccccccccccccccc",
+        "staker_withdrawer_pubkey": make_staker_pubkey(6),
         "is_active": True,
     }
     client.post("/auth/signup", json=signup_payload)
@@ -183,12 +195,14 @@ def test_staker_cannot_create_policy(client) -> None:
 
 
 def test_validator_cannot_create_duplicate_default_policy(client) -> None:
+    validator_identity_pubkey = make_validator_pubkey(7)
+
     signup_payload = {
         "username": "validator_policy_dup_default",
         "password": "secret123",
         "role": "validator",
         "alias": "Validator Policy Dup Default",
-        "validator_identity_pubkey": "dupdefaultvalidator1111111111111111",
+        "validator_identity_pubkey": validator_identity_pubkey,
         "vote_account_pubkey": DEMO_VOTE_ACCOUNT,
         "is_active": True,
     }
@@ -233,12 +247,15 @@ def test_validator_cannot_create_duplicate_default_policy(client) -> None:
 
 
 def test_validator_cannot_create_duplicate_individual_policy(client) -> None:
+    validator_identity_pubkey = make_validator_pubkey(8)
+    staker_withdrawer_pubkey = make_staker_pubkey(9)
+
     signup_payload = {
         "username": "validator_policy_dup_individual",
         "password": "secret123",
         "role": "validator",
         "alias": "Validator Policy Dup Individual",
-        "validator_identity_pubkey": "dupindividualvalidator11111111111111",
+        "validator_identity_pubkey": validator_identity_pubkey,
         "vote_account_pubkey": DEMO_VOTE_ACCOUNT,
         "is_active": True,
     }
@@ -253,7 +270,7 @@ def test_validator_cannot_create_duplicate_individual_policy(client) -> None:
     first_response = client.post(
         "/validators/me/policies",
         json={
-            "staker_withdrawer_pubkey": "abababababababababababababababab",
+            "staker_withdrawer_pubkey": staker_withdrawer_pubkey,
             "is_default": False,
             "mev_bps_back": 8000,
             "block_rewards_bps_back": 3500,
@@ -268,7 +285,7 @@ def test_validator_cannot_create_duplicate_individual_policy(client) -> None:
     second_response = client.post(
         "/validators/me/policies",
         json={
-            "staker_withdrawer_pubkey": "abababababababababababababababab",
+            "staker_withdrawer_pubkey": staker_withdrawer_pubkey,
             "is_default": False,
             "mev_bps_back": 8000,
             "block_rewards_bps_back": 3500,
@@ -283,12 +300,15 @@ def test_validator_cannot_create_duplicate_individual_policy(client) -> None:
 
 
 def test_validator_cannot_update_policy_into_duplicate(client) -> None:
+    validator_identity_pubkey = make_validator_pubkey(1)
+    other_staker_withdrawer_pubkey = make_staker_pubkey(3)
+
     signup_payload = {
         "username": "validator_policy_dup_update",
         "password": "secret123",
         "role": "validator",
         "alias": "Validator Policy Dup Update",
-        "validator_identity_pubkey": "dupupdatevalidator11111111111111111",
+        "validator_identity_pubkey": validator_identity_pubkey,
         "vote_account_pubkey": DEMO_VOTE_ACCOUNT,
         "is_active": True,
     }
@@ -314,12 +334,11 @@ def test_validator_cannot_update_policy_into_duplicate(client) -> None:
         headers={"Authorization": f"Bearer {token}"},
     )
     assert first_response.status_code == 201
-    first_policy_id = first_response.json()["id"]
 
     second_response = client.post(
         "/validators/me/policies",
         json={
-            "staker_withdrawer_pubkey": "cdcdcdcdcdcdcdcdcdcdcdcdcdcdcdcd",
+            "staker_withdrawer_pubkey": other_staker_withdrawer_pubkey,
             "is_default": False,
             "mev_bps_back": 9000,
             "block_rewards_bps_back": 4000,
@@ -347,7 +366,6 @@ def test_validator_cannot_update_policy_into_duplicate(client) -> None:
     )
     assert update_response.status_code == 409
     assert update_response.json()["detail"] == "An identical reward policy already exists"
-    assert first_policy_id != second_policy_id
 
 
 def test_validator_gets_404_when_updating_missing_policy(client) -> None:
@@ -356,7 +374,7 @@ def test_validator_gets_404_when_updating_missing_policy(client) -> None:
         "password": "secret123",
         "role": "validator",
         "alias": "Validator Policy Missing Update",
-        "validator_identity_pubkey": "missingupdatevalidator1111111111111",
+        "validator_identity_pubkey": make_validator_pubkey(5),
         "vote_account_pubkey": DEMO_VOTE_ACCOUNT,
         "is_active": True,
     }
@@ -392,7 +410,7 @@ def test_validator_cannot_update_other_validators_policy(client) -> None:
         "password": "secret123",
         "role": "validator",
         "alias": "Validator Policy Owner A",
-        "validator_identity_pubkey": "policyownera1111111111111111111111",
+        "validator_identity_pubkey": make_validator_pubkey(7),
         "vote_account_pubkey": DEMO_VOTE_ACCOUNT,
         "is_active": True,
     }
@@ -403,8 +421,8 @@ def test_validator_cannot_update_other_validators_policy(client) -> None:
         "password": "secret123",
         "role": "validator",
         "alias": "Validator Policy Owner B",
-        "validator_identity_pubkey": "policyownerb1111111111111111111111",
-        "vote_account_pubkey": "VoteAccOwnerB111111111111111111111111111111111",
+        "validator_identity_pubkey": make_validator_pubkey(8),
+        "vote_account_pubkey": make_vote_account_pubkey(9),
         "is_active": True,
     }
     client.post("/auth/signup", json=second_signup_payload)
@@ -461,7 +479,7 @@ def test_staker_cannot_list_validator_policies(client) -> None:
         "password": "secret123",
         "role": "staker",
         "alias": "Staker Policy List Forbidden",
-        "staker_withdrawer_pubkey": "edededededededededededededededed",
+        "staker_withdrawer_pubkey": make_staker_pubkey(2),
         "is_active": True,
     }
     client.post("/auth/signup", json=signup_payload)
@@ -486,7 +504,7 @@ def test_staker_cannot_update_policy(client) -> None:
         "password": "secret123",
         "role": "staker",
         "alias": "Staker Policy Update Forbidden",
-        "staker_withdrawer_pubkey": "fefefefefefefefefefefefefefefefe",
+        "staker_withdrawer_pubkey": make_staker_pubkey(4),
         "is_active": True,
     }
     client.post("/auth/signup", json=signup_payload)

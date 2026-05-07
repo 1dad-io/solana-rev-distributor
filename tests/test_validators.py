@@ -1,13 +1,16 @@
 from tests.conftest import DEMO_VOTE_ACCOUNT
+from tests.pubkeys import make_validator_pubkey, make_vote_account_pubkey
 
 
 def test_can_create_validator(client) -> None:
+    validator_identity_pubkey = make_validator_pubkey(1)
+
     signup_payload = {
         "username": "validator_directory_a",
         "password": "secret123",
         "role": "validator",
         "alias": "Validator Directory A",
-        "validator_identity_pubkey": "validatorlista1111111111111111111111",
+        "validator_identity_pubkey": validator_identity_pubkey,
         "vote_account_pubkey": DEMO_VOTE_ACCOUNT,
         "is_active": True,
     }
@@ -19,18 +22,21 @@ def test_can_create_validator(client) -> None:
     data = response.json()
     assert len(data) >= 1
     assert any(
-        item["identity_pubkey"] == "validatorlista1111111111111111111111"
+        item["identity_pubkey"] == validator_identity_pubkey
         for item in data
     )
 
 
 def test_can_list_validators(client) -> None:
+    first_validator_identity_pubkey = make_validator_pubkey(2)
+    second_validator_identity_pubkey = make_validator_pubkey(3)
+
     first_signup_payload = {
         "username": "validator_directory_b1",
         "password": "secret123",
         "role": "validator",
         "alias": "Validator Directory B1",
-        "validator_identity_pubkey": "validatorlistb1111111111111111111111",
+        "validator_identity_pubkey": first_validator_identity_pubkey,
         "vote_account_pubkey": DEMO_VOTE_ACCOUNT,
         "is_active": True,
     }
@@ -41,8 +47,8 @@ def test_can_list_validators(client) -> None:
         "password": "secret123",
         "role": "validator",
         "alias": "Validator Directory B2",
-        "validator_identity_pubkey": "validatorlistc1111111111111111111111",
-        "vote_account_pubkey": "VoteAccValidatorListC11111111111111111111111111",
+        "validator_identity_pubkey": second_validator_identity_pubkey,
+        "vote_account_pubkey": make_vote_account_pubkey(4),
         "is_active": True,
     }
     client.post("/auth/signup", json=second_signup_payload)
@@ -52,18 +58,21 @@ def test_can_list_validators(client) -> None:
     assert response.status_code == 200
     data = response.json()
     identities = [item["identity_pubkey"] for item in data]
-    assert "validatorlistb1111111111111111111111" in identities
-    assert "validatorlistc1111111111111111111111" in identities
+    assert first_validator_identity_pubkey in identities
+    assert second_validator_identity_pubkey in identities
 
 
 def test_validator_directory_returns_expected_shape(client) -> None:
+    validator_identity_pubkey = make_validator_pubkey(5)
+    vote_account_pubkey = make_vote_account_pubkey(6)
+
     signup_payload = {
         "username": "validator_directory_c",
         "password": "secret123",
         "role": "validator",
         "alias": "Validator Directory C",
-        "validator_identity_pubkey": "validatordirectoryc11111111111111111",
-        "vote_account_pubkey": "VoteAccValidatorDirC111111111111111111111111111",
+        "validator_identity_pubkey": validator_identity_pubkey,
+        "vote_account_pubkey": vote_account_pubkey,
         "is_active": True,
     }
     client.post("/auth/signup", json=signup_payload)
@@ -75,7 +84,7 @@ def test_validator_directory_returns_expected_shape(client) -> None:
     matching = [
         item
         for item in data
-        if item["identity_pubkey"] == "validatordirectoryc11111111111111111"
+        if item["identity_pubkey"] == validator_identity_pubkey
     ]
     assert len(matching) == 1
 
@@ -83,17 +92,20 @@ def test_validator_directory_returns_expected_shape(client) -> None:
     assert validator["alias"] == "Validator Directory C"
     assert validator["cluster"] == "testnet"
     assert validator["is_active"] is True
-    assert validator["vote_account_pubkey"] == "VoteAccValidatorDirC111111111111111111111111111"
+    assert validator["vote_account_pubkey"] == vote_account_pubkey
 
 
 def test_inactive_validator_remains_visible_in_directory(client) -> None:
+    validator_identity_pubkey = make_validator_pubkey(7)
+    vote_account_pubkey = make_vote_account_pubkey(8)
+
     signup_payload = {
         "username": "validator_directory_d",
         "password": "secret123",
         "role": "validator",
         "alias": "Validator Directory D",
-        "validator_identity_pubkey": "validatordirectoryd11111111111111111",
-        "vote_account_pubkey": "VoteAccValidatorDirD111111111111111111111111111",
+        "validator_identity_pubkey": validator_identity_pubkey,
+        "vote_account_pubkey": vote_account_pubkey,
         "is_active": True,
     }
     client.post("/auth/signup", json=signup_payload)
@@ -119,12 +131,12 @@ def test_inactive_validator_remains_visible_in_directory(client) -> None:
     matching = [
         item
         for item in data
-        if item["identity_pubkey"] == "validatordirectoryd11111111111111111"
+        if item["identity_pubkey"] == validator_identity_pubkey
     ]
     assert len(matching) == 1
     assert matching[0]["alias"] == "Validator Directory D"
     assert matching[0]["cluster"] == "testnet"
-    assert matching[0]["vote_account_pubkey"] == "VoteAccValidatorDirD111111111111111111111111111"
+    assert matching[0]["vote_account_pubkey"] == vote_account_pubkey
 
 
 def test_validators_directory_does_not_require_authentication(client) -> None:

@@ -1,13 +1,16 @@
 from tests.conftest import DEMO_EPOCH, DEMO_VOTE_ACCOUNT
+from tests.pubkeys import make_staker_pubkey, make_validator_pubkey
 
 
 def test_staker_can_get_own_profile(client) -> None:
+    staker_withdrawer_pubkey = make_staker_pubkey(1)
+
     signup_payload = {
         "username": "staker_profile",
         "password": "secret123",
         "role": "staker",
         "alias": "Staker Profile",
-        "staker_withdrawer_pubkey": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "staker_withdrawer_pubkey": staker_withdrawer_pubkey,
         "is_active": True,
     }
     client.post("/auth/signup", json=signup_payload)
@@ -28,17 +31,19 @@ def test_staker_can_get_own_profile(client) -> None:
     assert data["username"] == "staker_profile"
     assert data["role"] == "staker"
     assert data["alias"] == "Staker Profile"
-    assert data["staker_withdrawer_pubkey"] == "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+    assert data["staker_withdrawer_pubkey"] == staker_withdrawer_pubkey
     assert data["is_active"] is True
 
 
 def test_validator_can_get_own_profile(client) -> None:
+    validator_identity_pubkey = make_validator_pubkey(2)
+
     signup_payload = {
         "username": "validator_profile",
         "password": "secret123",
         "role": "validator",
         "alias": "Validator Profile",
-        "validator_identity_pubkey": "99999999999999999999999999999999",
+        "validator_identity_pubkey": validator_identity_pubkey,
         "vote_account_pubkey": DEMO_VOTE_ACCOUNT,
         "is_active": True,
     }
@@ -60,17 +65,19 @@ def test_validator_can_get_own_profile(client) -> None:
     assert data["username"] == "validator_profile"
     assert data["role"] == "validator"
     assert data["alias"] == "Validator Profile"
-    assert data["validator_identity_pubkey"] == "99999999999999999999999999999999"
+    assert data["validator_identity_pubkey"] == validator_identity_pubkey
     assert data["is_active"] is True
 
 
 def test_staker_can_update_own_profile(client) -> None:
+    staker_withdrawer_pubkey = make_staker_pubkey(3)
+
     signup_payload = {
         "username": "staker_update",
         "password": "secret123",
         "role": "staker",
         "alias": "Old Alias",
-        "staker_withdrawer_pubkey": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+        "staker_withdrawer_pubkey": staker_withdrawer_pubkey,
         "is_active": True,
     }
     client.post("/auth/signup", json=signup_payload)
@@ -91,16 +98,18 @@ def test_staker_can_update_own_profile(client) -> None:
     data = response.json()
     assert data["alias"] == "New Alias"
     assert data["is_active"] is False
-    assert data["staker_withdrawer_pubkey"] == "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+    assert data["staker_withdrawer_pubkey"] == staker_withdrawer_pubkey
 
 
 def test_validator_can_update_own_profile(client) -> None:
+    validator_identity_pubkey = make_validator_pubkey(4)
+
     signup_payload = {
         "username": "validator_update",
         "password": "secret123",
         "role": "validator",
         "alias": "Old Validator Alias",
-        "validator_identity_pubkey": "aaaaaaaa111111111111111111111111",
+        "validator_identity_pubkey": validator_identity_pubkey,
         "vote_account_pubkey": DEMO_VOTE_ACCOUNT,
         "is_active": True,
     }
@@ -122,7 +131,7 @@ def test_validator_can_update_own_profile(client) -> None:
     data = response.json()
     assert data["alias"] == "New Validator Alias"
     assert data["is_active"] is False
-    assert data["validator_identity_pubkey"] == "aaaaaaaa111111111111111111111111"
+    assert data["validator_identity_pubkey"] == validator_identity_pubkey
 
 
 def test_staker_cannot_access_validator_me(client) -> None:
@@ -131,7 +140,7 @@ def test_staker_cannot_access_validator_me(client) -> None:
         "password": "secret123",
         "role": "staker",
         "alias": "Staker Forbidden",
-        "staker_withdrawer_pubkey": "dddddddddddddddddddddddddddddddd",
+        "staker_withdrawer_pubkey": make_staker_pubkey(5),
         "is_active": True,
     }
     client.post("/auth/signup", json=signup_payload)
@@ -156,7 +165,7 @@ def test_validator_cannot_access_staker_me(client) -> None:
         "password": "secret123",
         "role": "validator",
         "alias": "Validator Forbidden",
-        "validator_identity_pubkey": "cccccccccccccccccccccccccccccccc",
+        "validator_identity_pubkey": make_validator_pubkey(6),
         "vote_account_pubkey": DEMO_VOTE_ACCOUNT,
         "is_active": True,
     }
@@ -208,7 +217,7 @@ def test_staker_cannot_update_validator_profile(client) -> None:
         "password": "secret123",
         "role": "staker",
         "alias": "Staker Update Forbidden",
-        "staker_withdrawer_pubkey": "efefefefefefefefefefefefefefefef",
+        "staker_withdrawer_pubkey": make_staker_pubkey(7),
         "is_active": True,
     }
     client.post("/auth/signup", json=signup_payload)
@@ -234,7 +243,7 @@ def test_validator_cannot_update_staker_profile(client) -> None:
         "password": "secret123",
         "role": "validator",
         "alias": "Validator Update Forbidden",
-        "validator_identity_pubkey": "edededededededededededededededed",
+        "validator_identity_pubkey": make_validator_pubkey(8),
         "vote_account_pubkey": DEMO_VOTE_ACCOUNT,
         "is_active": True,
     }
@@ -261,7 +270,7 @@ def test_inactive_staker_can_read_own_profile(client) -> None:
         "password": "secret123",
         "role": "staker",
         "alias": "Inactive Read Staker",
-        "staker_withdrawer_pubkey": "f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1f1",
+        "staker_withdrawer_pubkey": make_staker_pubkey(1),
         "is_active": True,
     }
     client.post("/auth/signup", json=signup_payload)
@@ -298,7 +307,7 @@ def test_inactive_validator_can_read_own_profile(client) -> None:
         "password": "secret123",
         "role": "validator",
         "alias": "Inactive Read Validator",
-        "validator_identity_pubkey": "f2f2f2f2f2f2f2f2f2f2f2f2f2f2f2f2",
+        "validator_identity_pubkey": make_validator_pubkey(2),
         "vote_account_pubkey": DEMO_VOTE_ACCOUNT,
         "is_active": True,
     }
@@ -336,7 +345,7 @@ def test_inactive_validator_cannot_create_policy(client) -> None:
         "password": "secret123",
         "role": "validator",
         "alias": "Validator Inactive Policy",
-        "validator_identity_pubkey": "inactivepolicy11111111111111111111",
+        "validator_identity_pubkey": make_validator_pubkey(3),
         "vote_account_pubkey": DEMO_VOTE_ACCOUNT,
         "is_active": True,
     }
@@ -379,7 +388,7 @@ def test_inactive_validator_cannot_update_policy(client) -> None:
         "password": "secret123",
         "role": "validator",
         "alias": "Validator Inactive Policy Update",
-        "validator_identity_pubkey": "inactivepolicyupdate1111111111111",
+        "validator_identity_pubkey": make_validator_pubkey(4),
         "vote_account_pubkey": DEMO_VOTE_ACCOUNT,
         "is_active": True,
     }
@@ -438,7 +447,7 @@ def test_inactive_validator_cannot_import_stakes(client) -> None:
         "password": "secret123",
         "role": "validator",
         "alias": "Validator Inactive Stakes Import",
-        "validator_identity_pubkey": "inactivestakesimport111111111111",
+        "validator_identity_pubkey": make_validator_pubkey(5),
         "vote_account_pubkey": DEMO_VOTE_ACCOUNT,
         "is_active": True,
     }
@@ -473,7 +482,7 @@ def test_inactive_validator_cannot_import_epoch_context(client) -> None:
         "password": "secret123",
         "role": "validator",
         "alias": "Validator Inactive Epoch Import",
-        "validator_identity_pubkey": "inactiveepochimport1111111111111",
+        "validator_identity_pubkey": make_validator_pubkey(6),
         "vote_account_pubkey": DEMO_VOTE_ACCOUNT,
         "is_active": True,
     }
@@ -512,7 +521,7 @@ def test_inactive_validator_cannot_calculate_rewards(client) -> None:
         "password": "secret123",
         "role": "validator",
         "alias": "Validator Inactive Rewards Calc",
-        "validator_identity_pubkey": "inactiverewardscalc1111111111111",
+        "validator_identity_pubkey": make_validator_pubkey(7),
         "vote_account_pubkey": DEMO_VOTE_ACCOUNT,
         "is_active": True,
     }

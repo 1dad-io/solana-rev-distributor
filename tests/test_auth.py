@@ -1,4 +1,9 @@
 from tests.conftest import DEMO_VOTE_ACCOUNT
+from tests.pubkeys import (
+    make_staker_pubkey,
+    make_validator_pubkey,
+    make_vote_account_pubkey,
+)
 
 
 def test_signup_validator(client) -> None:
@@ -7,7 +12,7 @@ def test_signup_validator(client) -> None:
         "password": "secret123",
         "role": "validator",
         "alias": "Validator User",
-        "validator_identity_pubkey": "33333333333333333333333333333333",
+        "validator_identity_pubkey": make_validator_pubkey(3),
         "vote_account_pubkey": DEMO_VOTE_ACCOUNT,
         "is_active": True,
     }
@@ -19,7 +24,7 @@ def test_signup_validator(client) -> None:
     assert data["username"] == "validator1"
     assert data["role"] == "validator"
     assert data["alias"] == "Validator User"
-    assert data["validator_identity_pubkey"] == "33333333333333333333333333333333"
+    assert data["validator_identity_pubkey"] == make_validator_pubkey(3)
     assert data["is_active"] is True
 
 
@@ -29,7 +34,7 @@ def test_signup_staker(client) -> None:
         "password": "secret123",
         "role": "staker",
         "alias": "Staker User",
-        "staker_withdrawer_pubkey": "44444444444444444444444444444444",
+        "staker_withdrawer_pubkey": make_staker_pubkey(4),
         "is_active": True,
     }
 
@@ -40,7 +45,7 @@ def test_signup_staker(client) -> None:
     assert data["username"] == "staker1"
     assert data["role"] == "staker"
     assert data["alias"] == "Staker User"
-    assert data["staker_withdrawer_pubkey"] == "44444444444444444444444444444444"
+    assert data["staker_withdrawer_pubkey"] == make_staker_pubkey(4)
     assert data["is_active"] is True
 
 
@@ -50,7 +55,7 @@ def test_signup_duplicate_username_fails(client) -> None:
         "password": "secret123",
         "role": "staker",
         "alias": "First User",
-        "staker_withdrawer_pubkey": "66666666666666666666666666666666",
+        "staker_withdrawer_pubkey": make_staker_pubkey(6),
         "is_active": True,
     }
 
@@ -64,8 +69,8 @@ def test_signup_duplicate_username_fails(client) -> None:
             "password": "secret123",
             "role": "validator",
             "alias": "Second User",
-            "validator_identity_pubkey": "77777777777777777777777777777777",
-            "vote_account_pubkey": "VoteAcc222222222222222222222222222222222222",
+            "validator_identity_pubkey": make_validator_pubkey(7),
+            "vote_account_pubkey": make_vote_account_pubkey(8),
             "is_active": True,
         },
     )
@@ -77,6 +82,8 @@ def test_signup_duplicate_username_fails(client) -> None:
 
 
 def test_signup_duplicate_validator_identity_pubkey_fails(client) -> None:
+    validator_identity_pubkey = make_validator_pubkey(1)
+
     first_response = client.post(
         "/auth/signup",
         json={
@@ -84,7 +91,7 @@ def test_signup_duplicate_validator_identity_pubkey_fails(client) -> None:
             "password": "secret123",
             "role": "validator",
             "alias": "Duplicate Validator A",
-            "validator_identity_pubkey": "81818181818181818181818181818181",
+            "validator_identity_pubkey": validator_identity_pubkey,
             "vote_account_pubkey": DEMO_VOTE_ACCOUNT,
             "is_active": True,
         },
@@ -98,8 +105,8 @@ def test_signup_duplicate_validator_identity_pubkey_fails(client) -> None:
             "password": "secret123",
             "role": "validator",
             "alias": "Duplicate Validator B",
-            "validator_identity_pubkey": "81818181818181818181818181818181",
-            "vote_account_pubkey": "VoteAcc333333333333333333333333333333333333",
+            "validator_identity_pubkey": validator_identity_pubkey,
+            "vote_account_pubkey": make_vote_account_pubkey(2),
             "is_active": True,
         },
     )
@@ -111,6 +118,8 @@ def test_signup_duplicate_validator_identity_pubkey_fails(client) -> None:
 
 
 def test_signup_duplicate_staker_withdrawer_pubkey_fails(client) -> None:
+    staker_withdrawer_pubkey = make_staker_pubkey(9)
+
     first_response = client.post(
         "/auth/signup",
         json={
@@ -118,7 +127,7 @@ def test_signup_duplicate_staker_withdrawer_pubkey_fails(client) -> None:
             "password": "secret123",
             "role": "staker",
             "alias": "Duplicate Staker A",
-            "staker_withdrawer_pubkey": "91919191919191919191919191919191",
+            "staker_withdrawer_pubkey": staker_withdrawer_pubkey,
             "is_active": True,
         },
     )
@@ -131,7 +140,7 @@ def test_signup_duplicate_staker_withdrawer_pubkey_fails(client) -> None:
             "password": "secret123",
             "role": "staker",
             "alias": "Duplicate Staker B",
-            "staker_withdrawer_pubkey": "91919191919191919191919191919191",
+            "staker_withdrawer_pubkey": staker_withdrawer_pubkey,
             "is_active": True,
         },
     )
@@ -148,8 +157,8 @@ def test_login_success(client) -> None:
         "password": "secret123",
         "role": "validator",
         "alias": "Validator Two",
-        "validator_identity_pubkey": "55555555555555555555555555555555",
-        "vote_account_pubkey": "VoteAcc111111111111111111111111111111111111",
+        "validator_identity_pubkey": make_validator_pubkey(5),
+        "vote_account_pubkey": make_vote_account_pubkey(1),
         "is_active": True,
     }
     client.post("/auth/signup", json=signup_payload)
@@ -171,8 +180,8 @@ def test_login_wrong_password(client) -> None:
         "password": "secret123",
         "role": "validator",
         "alias": "Validator Three",
-        "validator_identity_pubkey": "88888888888888888888888888888888",
-        "vote_account_pubkey": "VoteAcc444444444444444444444444444444444444",
+        "validator_identity_pubkey": make_validator_pubkey(8),
+        "vote_account_pubkey": make_vote_account_pubkey(4),
         "is_active": True,
     }
     client.post("/auth/signup", json=signup_payload)
@@ -200,7 +209,7 @@ def test_auth_me_with_token(client) -> None:
         "password": "secret123",
         "role": "staker",
         "alias": "Staker Two",
-        "staker_withdrawer_pubkey": "77777777777777777777777777777777",
+        "staker_withdrawer_pubkey": make_staker_pubkey(7),
         "is_active": True,
     }
     client.post("/auth/signup", json=signup_payload)
@@ -223,7 +232,7 @@ def test_auth_me_with_token(client) -> None:
     assert data["username"] == "staker2"
     assert data["role"] == "staker"
     assert data["alias"] == "Staker Two"
-    assert data["staker_withdrawer_pubkey"] == "77777777777777777777777777777777"
+    assert data["staker_withdrawer_pubkey"] == make_staker_pubkey(7)
     assert data["is_active"] is True
 
 
@@ -246,7 +255,7 @@ def test_inactive_staker_cannot_login(client) -> None:
         "password": "secret123",
         "role": "staker",
         "alias": "Inactive Staker",
-        "staker_withdrawer_pubkey": "12121212121212121212121212121212",
+        "staker_withdrawer_pubkey": make_staker_pubkey(1),
         "is_active": True,
     }
     client.post("/auth/signup", json=signup_payload)
@@ -280,8 +289,8 @@ def test_inactive_validator_cannot_login(client) -> None:
         "password": "secret123",
         "role": "validator",
         "alias": "Inactive Validator",
-        "validator_identity_pubkey": "13131313131313131313131313131313",
-        "vote_account_pubkey": "VoteAcc555555555555555555555555555555555555",
+        "validator_identity_pubkey": make_validator_pubkey(1),
+        "vote_account_pubkey": make_vote_account_pubkey(5),
         "is_active": True,
     }
     client.post("/auth/signup", json=signup_payload)

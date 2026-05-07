@@ -1,13 +1,16 @@
 from tests.conftest import DEMO_EPOCH, DEMO_VOTE_ACCOUNT, write_demo_validator_rewards_file
+from tests.pubkeys import make_staker_pubkey, make_validator_pubkey
 
 
 def test_validator_can_import_epoch_context(client) -> None:
+    validator_identity_pubkey = make_validator_pubkey(1)
+
     signup_payload = {
         "username": "test_validator_epoch_a",
         "password": "secret123",
         "role": "validator",
         "alias": "Test Validator Epoch A",
-        "validator_identity_pubkey": "TestVa1idatorEpochA1111111111111111111111",
+        "validator_identity_pubkey": validator_identity_pubkey,
         "vote_account_pubkey": DEMO_VOTE_ACCOUNT,
         "is_active": True,
     }
@@ -33,7 +36,7 @@ def test_validator_can_import_epoch_context(client) -> None:
 
     assert response.status_code == 201
     data = response.json()
-    assert data["validator_identity_pubkey"] == "TestVa1idatorEpochA1111111111111111111111"
+    assert data["validator_identity_pubkey"] == validator_identity_pubkey
     assert data["cluster"] == "testnet"
     assert data["epoch"] == DEMO_EPOCH
     assert data["block_rewards_lamports"] == 1_000_000_000
@@ -41,12 +44,14 @@ def test_validator_can_import_epoch_context(client) -> None:
 
 
 def test_validator_can_get_epoch_context(client) -> None:
+    validator_identity_pubkey = make_validator_pubkey(2)
+
     signup_payload = {
         "username": "test_validator_epoch_b",
         "password": "secret123",
         "role": "validator",
         "alias": "Test Validator Epoch B",
-        "validator_identity_pubkey": "TestVa1idatorEpochB1111111111111111111111",
+        "validator_identity_pubkey": validator_identity_pubkey,
         "vote_account_pubkey": DEMO_VOTE_ACCOUNT,
         "is_active": True,
     }
@@ -78,7 +83,7 @@ def test_validator_can_get_epoch_context(client) -> None:
 
     assert response.status_code == 200
     data = response.json()
-    assert data["validator_identity_pubkey"] == "TestVa1idatorEpochB1111111111111111111111"
+    assert data["validator_identity_pubkey"] == validator_identity_pubkey
     assert data["cluster"] == "testnet"
     assert data["epoch"] == DEMO_EPOCH
     assert data["block_rewards_lamports"] == 1_000_000_000
@@ -91,7 +96,7 @@ def test_validator_cannot_get_missing_epoch_context(client) -> None:
         "password": "secret123",
         "role": "validator",
         "alias": "Test Validator Epoch C",
-        "validator_identity_pubkey": "TestVa1idatorEpochC1111111111111111111111",
+        "validator_identity_pubkey": make_validator_pubkey(3),
         "vote_account_pubkey": DEMO_VOTE_ACCOUNT,
         "is_active": True,
     }
@@ -118,7 +123,7 @@ def test_staker_cannot_import_epoch_context(client) -> None:
         "password": "secret123",
         "role": "staker",
         "alias": "Test Staker Epoch Forbidden A",
-        "staker_withdrawer_pubkey": "abababababababababababababababab",
+        "staker_withdrawer_pubkey": make_staker_pubkey(4),
         "is_active": True,
     }
     client.post("/auth/signup", json=signup_payload)
@@ -148,7 +153,7 @@ def test_staker_cannot_get_validator_epoch_context(client) -> None:
         "password": "secret123",
         "role": "staker",
         "alias": "Test Staker Epoch Forbidden B",
-        "staker_withdrawer_pubkey": "bcbcbcbcbcbcbcbcbcbcbcbcbcbcbcbc",
+        "staker_withdrawer_pubkey": make_staker_pubkey(5),
         "is_active": True,
     }
     client.post("/auth/signup", json=signup_payload)
