@@ -7,12 +7,14 @@ from tests.pubkeys import (
 
 
 def test_signup_validator(client) -> None:
+    validator_identity_pubkey = make_validator_pubkey(3)
+
     payload = {
         "username": "validator1",
         "password": "secret123",
         "role": "validator",
         "alias": "Validator User",
-        "validator_identity_pubkey": make_validator_pubkey(3),
+        "validator_identity_pubkey": validator_identity_pubkey,
         "vote_account_pubkey": DEMO_VOTE_ACCOUNT,
         "is_active": True,
     }
@@ -24,17 +26,19 @@ def test_signup_validator(client) -> None:
     assert data["username"] == "validator1"
     assert data["role"] == "validator"
     assert data["alias"] == "Validator User"
-    assert data["validator_identity_pubkey"] == make_validator_pubkey(3)
+    assert data["validator_identity_pubkey"] == validator_identity_pubkey
     assert data["is_active"] is True
 
 
 def test_signup_staker(client) -> None:
+    staker_withdrawer_pubkey = make_staker_pubkey(4)
+
     payload = {
         "username": "staker1",
         "password": "secret123",
         "role": "staker",
         "alias": "Staker User",
-        "staker_withdrawer_pubkey": make_staker_pubkey(4),
+        "staker_withdrawer_pubkey": staker_withdrawer_pubkey,
         "is_active": True,
     }
 
@@ -45,7 +49,7 @@ def test_signup_staker(client) -> None:
     assert data["username"] == "staker1"
     assert data["role"] == "staker"
     assert data["alias"] == "Staker User"
-    assert data["staker_withdrawer_pubkey"] == make_staker_pubkey(4)
+    assert data["staker_withdrawer_pubkey"] == staker_withdrawer_pubkey
     assert data["is_active"] is True
 
 
@@ -203,13 +207,64 @@ def test_login_unknown_user(client) -> None:
     assert response.json()["detail"] == "Invalid username or password"
 
 
+def test_login_rejects_empty_username(client) -> None:
+    response = client.post(
+        "/auth/login",
+        data={"username": "", "password": "secret123"},
+    )
+
+    assert response.status_code == 422
+
+
+def test_login_rejects_empty_password(client) -> None:
+    signup_payload = {
+        "username": "validator_empty_password_login",
+        "password": "secret123",
+        "role": "validator",
+        "alias": "Validator Empty Password Login",
+        "validator_identity_pubkey": make_validator_pubkey(2),
+        "vote_account_pubkey": make_vote_account_pubkey(3),
+        "is_active": True,
+    }
+    client.post("/auth/signup", json=signup_payload)
+
+    response = client.post(
+        "/auth/login",
+        data={"username": "validator_empty_password_login", "password": ""},
+    )
+
+    assert response.status_code == 422
+
+
+def test_login_rejects_missing_password_form_field(client) -> None:
+    signup_payload = {
+        "username": "validator_missing_password_login",
+        "password": "secret123",
+        "role": "validator",
+        "alias": "Validator Missing Password Login",
+        "validator_identity_pubkey": make_validator_pubkey(4),
+        "vote_account_pubkey": make_vote_account_pubkey(5),
+        "is_active": True,
+    }
+    client.post("/auth/signup", json=signup_payload)
+
+    response = client.post(
+        "/auth/login",
+        data={"username": "validator_missing_password_login"},
+    )
+
+    assert response.status_code in {401, 422}
+
+
 def test_auth_me_with_token(client) -> None:
+    staker_withdrawer_pubkey = make_staker_pubkey(7)
+
     signup_payload = {
         "username": "staker2",
         "password": "secret123",
         "role": "staker",
         "alias": "Staker Two",
-        "staker_withdrawer_pubkey": make_staker_pubkey(7),
+        "staker_withdrawer_pubkey": staker_withdrawer_pubkey,
         "is_active": True,
     }
     client.post("/auth/signup", json=signup_payload)
@@ -232,7 +287,7 @@ def test_auth_me_with_token(client) -> None:
     assert data["username"] == "staker2"
     assert data["role"] == "staker"
     assert data["alias"] == "Staker Two"
-    assert data["staker_withdrawer_pubkey"] == make_staker_pubkey(7)
+    assert data["staker_withdrawer_pubkey"] == staker_withdrawer_pubkey
     assert data["is_active"] is True
 
 
@@ -246,6 +301,24 @@ def test_auth_me_rejects_invalid_token(client) -> None:
         "/auth/me",
         headers={"Authorization": "Bearer invalid-token"},
     )
+    assert response.status_code == 401
+
+
+def test_auth_me_rejects_missing_bearer_prefix(client) -> None:
+    response = client.get(
+        "/auth/me",
+        headers={"Authorization": "invalid-token"},
+    )
+
+    assert response.status_code == 401
+
+
+def test_auth_me_rejects_empty_bearer_token(client) -> None:
+    response = client.get(
+        "/auth/me",
+        headers={"Authorization": "Bearer "},
+    )
+
     assert response.status_code == 401
 
 
