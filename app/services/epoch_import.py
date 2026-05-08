@@ -1,5 +1,3 @@
-# pylint: disable=too-many-arguments,too-many-positional-arguments
-
 import hashlib
 import json
 from pathlib import Path
@@ -13,6 +11,10 @@ from app.models.epoch_reward_context import EpochRewardContext
 
 def _sha256_text(text: str) -> str:
     return hashlib.sha256(text.encode("utf-8")).hexdigest()
+
+
+def _build_rewards_source_path(epoch: int) -> Path:
+    return Path(settings.validator_rewards_dir) / f"{epoch}.json"
 
 
 def _extract_mev_fields(
@@ -61,33 +63,35 @@ def _fetch_jito_validator_rewards(
     source_path.write_text(response.text, encoding="utf-8")
 
 
-def import_epoch_reward_context(
-    db: Session,
-    validator_identity_pubkey: str,
+def _ensure_rewards_source_file(
+    source_path: Path,
+    *,
     vote_account_pubkey: str,
     epoch: int,
-    block_rewards_lamports: int,
-    uptime_bps: int,
-) -> EpochRewardContext:
-    source_path = Path(settings.validator_rewards_dir) / f"{epoch}.json"
+) -> None:
+    if source_path.exists():
+        return
 
-    if not source_path.exists():
-        _fetch_jito_validator_rewards(
-            source_path=source_path,
-            vote_account_pubkey=vote_account_pubkey,
-            epoch=epoch,
-        )
-
-    raw_text = source_path.read_text(encoding="utf-8")
-    payload = json.loads(raw_text)
-
-    mev_revenue_lamports, mev_commission_bps = _extract_mev_fields(
-        payload=payload,
+    _fetch_jito_validator_rewards(
+        source_path=source_path,
         vote_account_pubkey=vote_account_pubkey,
         epoch=epoch,
     )
 
-    existing_context = (
+
+def _load_rewards_payload(source_path: Path) -> tuple[object, str]:
+    raw_text = source_path.read_text(encoding="utf-8")
+    payload = json.loads(raw_text)
+    return payload, raw_text
+
+
+def _get_existing_epoch_reward_context(
+    db: Session,
+    *,
+    validator_identity_pubkey: str,
+    epoch: int,
+) -> EpochRewardContext | None:
+    return (
         db.query(EpochRewardContext)
         .filter(EpochRewardContext.validator_identity_pubkey == validator_identity_pubkey)
         .filter(EpochRewardContext.cluster == settings.app_cluster)
@@ -95,10 +99,28 @@ def import_epoch_reward_context(
         .first()
     )
 
-    if existing_context:
-        db.delete(existing_context)
-        db.commit()
 
+def _delete_existing_epoch_reward_context(
+    db: Session,
+    *,
+    context_id: int,
+) -> None:
+    db.query(EpochRewardContext).filter(EpochRewardContext.id == context_id).delete()
+    db.commit()
+
+
+def _create_epoch_reward_context(
+    db: Session,
+    *,
+    validator_identity_pubkey: str,
+    epoch: int,
+    mev_revenue_lamports: int,
+    mev_commission_bps: int,
+    block_rewards_lamports: int,
+    uptime_bps: int,
+    source_path: Path,
+    raw_text: str,
+) -> EpochRewardContext:
     context = EpochRewardContext(
         validator_identity_pubkey=validator_identity_pubkey,
         cluster=settings.app_cluster,
@@ -115,3 +137,51 @@ def import_epoch_reward_context(
     db.commit()
     db.refresh(context)
     return context
+
+
+def import_epoch_reward_context(
+    db: Session,
+    validator_identity_pubkey: str,
+    vote_account_pubkey: str,
+    epoch: int,
+    block_rewards_lamports: int,
+    uptime_bps: int,
+) -> EpochRewardContext:
+    source_path = _build_rewards_source_path(epoch)
+
+    _ensure_rewards_source_file(
+        source_path,
+        vote_account_pubkey=vote_account_pubkey,
+        epoch=epoch,
+    )
+
+    payload, raw_text = _load_rewards_payload(source_path)
+
+    mev_revenue_lamports, mev_commission_bps = _extract_mev_fields(
+        payload=payload,
+        vote_account_pubkey=vote_account_pubkey,
+        epoch=epoch,
+    )
+
+    existing_context = _get_existing_epoch_reward_context(
+        db,
+        validator_identity_pubkey=validator_identity_pubkey,
+        epoch=epoch,
+    )
+    if existing_context is not None:
+        _delete_existing_epoch_reward_context(
+            db,
+            context_id=existing_context.id,
+        )
+
+    return _create_epoch_reward_context(
+        db,
+        validator_identity_pubkey=validator_identity_pubkey,
+        epoch=epoch,
+        mev_revenue_lamports=mev_revenue_lamports,
+        mev_commission_bps=mev_commission_bps,
+        block_rewards_lamports=block_rewards_lamports,
+        uptime_bps=uptime_bps,
+        source_path=source_path,
+        raw_text=raw_text,
+    )
