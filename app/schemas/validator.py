@@ -1,11 +1,15 @@
 from datetime import datetime
 
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 from app.demo import (
     DEMO_ALIAS_VALIDATOR,
     DEMO_VALIDATOR_IDENTITY,
     DEMO_VOTE_ACCOUNT,
+)
+from app.validators.pubkeys import (
+    validate_validator_identity_pubkey,
+    validate_vote_account_pubkey,
 )
 
 
@@ -39,6 +43,26 @@ class ValidatorCreate(BaseModel):
         description="Whether the validator record is active.",
         examples=[True],
     )
+
+    @field_validator("identity_pubkey", mode="before")
+    @classmethod
+    def normalize_identity_pubkey(cls, value: str) -> str:
+        return value.strip() if isinstance(value, str) else value
+
+    @field_validator("vote_account_pubkey", mode="before")
+    @classmethod
+    def normalize_vote_account_pubkey(cls, value: str) -> str:
+        return value.strip() if isinstance(value, str) else value
+
+    @field_validator("identity_pubkey")
+    @classmethod
+    def validate_identity_pubkey_field(cls, value: str) -> str:
+        return validate_validator_identity_pubkey(value)
+
+    @field_validator("vote_account_pubkey")
+    @classmethod
+    def validate_vote_account_pubkey_field(cls, value: str) -> str:
+        return validate_vote_account_pubkey(value)
 
 
 class ValidatorRead(BaseModel):

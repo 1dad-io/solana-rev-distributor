@@ -7,6 +7,11 @@ from app.demo import (
     DEMO_PASSWORD,
     DEMO_USERNAME_VALIDATOR,
 )
+from app.validators.pubkeys import (
+    validate_staker_withdrawer_pubkey,
+    validate_validator_identity_pubkey,
+    validate_vote_account_pubkey,
+)
 
 
 class SignupRequest(BaseModel):
@@ -69,7 +74,28 @@ class SignupRequest(BaseModel):
             return None
         if isinstance(value, str) and not value.strip():
             return None
-        return value
+        return value.strip() if isinstance(value, str) else value
+
+    @field_validator("validator_identity_pubkey")
+    @classmethod
+    def validate_validator_identity_pubkey_field(cls, value: str | None) -> str | None:
+        if value is None:
+            return value
+        return validate_validator_identity_pubkey(value)
+
+    @field_validator("vote_account_pubkey")
+    @classmethod
+    def validate_vote_account_pubkey_field(cls, value: str | None) -> str | None:
+        if value is None:
+            return value
+        return validate_vote_account_pubkey(value)
+
+    @field_validator("staker_withdrawer_pubkey")
+    @classmethod
+    def validate_staker_withdrawer_pubkey_field(cls, value: str | None) -> str | None:
+        if value is None:
+            return value
+        return validate_staker_withdrawer_pubkey(value)
 
     @model_validator(mode="after")
     def validate_role_fields(self) -> "SignupRequest":

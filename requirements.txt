@@ -8,3 +8,4 @@ passlib
 python-multipart
 httpx
 pytest
+base58>=2.1.1

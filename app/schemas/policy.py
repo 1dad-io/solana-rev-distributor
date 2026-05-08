@@ -8,6 +8,7 @@ from app.demo import (
     DEMO_STAKER_WITHDRAWER,
     DEMO_VALIDATOR_IDENTITY,
 )
+from app.validators.pubkeys import validate_staker_withdrawer_pubkey
 
 
 class RewardPolicyCreate(BaseModel):
@@ -59,7 +60,14 @@ class RewardPolicyCreate(BaseModel):
             return None
         if isinstance(value, str) and not value.strip():
             return None
-        return value
+        return value.strip() if isinstance(value, str) else value
+
+    @field_validator("staker_withdrawer_pubkey")
+    @classmethod
+    def validate_staker_withdrawer_pubkey_field(cls, value: str | None) -> str | None:
+        if value is None:
+            return value
+        return validate_staker_withdrawer_pubkey(value)
 
     @field_validator("valid_to_epoch")
     @classmethod
@@ -127,7 +135,14 @@ class RewardPolicyUpdate(BaseModel):
             return None
         if isinstance(value, str) and not value.strip():
             return None
-        return value
+        return value.strip() if isinstance(value, str) else value
+
+    @field_validator("staker_withdrawer_pubkey")
+    @classmethod
+    def validate_staker_withdrawer_pubkey_field(cls, value: str | None) -> str | None:
+        if value is None:
+            return value
+        return validate_staker_withdrawer_pubkey(value)
 
     @field_validator("valid_to_epoch")
     @classmethod
