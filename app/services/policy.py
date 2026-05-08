@@ -3,6 +3,7 @@ from datetime import datetime, timezone
 from sqlalchemy.orm import Session
 
 from app.models.reward_policy import RewardPolicy
+from app.schemas.policy import RewardPolicyCreate, RewardPolicyUpdate
 
 
 def find_duplicate_policy(
@@ -10,25 +11,19 @@ def find_duplicate_policy(
     *,
     validator_identity_pubkey: str,
     cluster: str,
-    staker_withdrawer_pubkey: str | None,
-    is_default: bool,
-    mev_bps_back: int,
-    block_rewards_bps_back: int,
-    valid_from_epoch: int | None,
-    valid_to_epoch: int | None,
-    is_active: bool,
+    payload: RewardPolicyCreate | RewardPolicyUpdate,
     exclude_policy_id: int | None = None,
 ) -> RewardPolicy | None:
     query = db.query(RewardPolicy).filter(
         RewardPolicy.validator_identity_pubkey == validator_identity_pubkey,
         RewardPolicy.cluster == cluster,
-        RewardPolicy.staker_withdrawer_pubkey == staker_withdrawer_pubkey,
-        RewardPolicy.is_default == is_default,
-        RewardPolicy.mev_bps_back == mev_bps_back,
-        RewardPolicy.block_rewards_bps_back == block_rewards_bps_back,
-        RewardPolicy.valid_from_epoch == valid_from_epoch,
-        RewardPolicy.valid_to_epoch == valid_to_epoch,
-        RewardPolicy.is_active == is_active,
+        RewardPolicy.staker_withdrawer_pubkey == payload.staker_withdrawer_pubkey,
+        RewardPolicy.is_default == payload.is_default,
+        RewardPolicy.mev_bps_back == payload.mev_bps_back,
+        RewardPolicy.block_rewards_bps_back == payload.block_rewards_bps_back,
+        RewardPolicy.valid_from_epoch == payload.valid_from_epoch,
+        RewardPolicy.valid_to_epoch == payload.valid_to_epoch,
+        RewardPolicy.is_active == payload.is_active,
     )
 
     if exclude_policy_id is not None:
