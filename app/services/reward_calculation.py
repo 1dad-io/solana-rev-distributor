@@ -1,3 +1,4 @@
+from dataclasses import dataclass
 from datetime import datetime, timezone
 
 from sqlalchemy.orm import Session
@@ -11,24 +12,30 @@ from app.models.stake_snapshot import StakeSnapshot
 from app.services.policy import select_policy_for_staker
 
 
+@dataclass(frozen=True)
+class RewardBuildContext:
+    validator_identity_pubkey: str
+    epoch: int
+    validator_total_active_stake_lamports: int
+    epoch_context: EpochRewardContext | None = None
+
+
 def _build_error_reward(
     *,
-    validator_identity_pubkey: str,
-    epoch: int,
     stake_account: StakeAccount,
-    validator_total_active_stake_lamports: int,
+    context: RewardBuildContext,
 ) -> Reward:
     return Reward(
-        validator_identity_pubkey=validator_identity_pubkey,
+        validator_identity_pubkey=context.validator_identity_pubkey,
         cluster=settings.app_cluster,
-        epoch=epoch,
+        epoch=context.epoch,
         stake_account_id=stake_account.id,
         policy_id_used=None,
         staker_withdrawer_pubkey=stake_account.withdrawer_authority,
         stake_pubkey=stake_account.stake_pubkey,
         withdrawer_authority=stake_account.withdrawer_authority,
         active_stake_lamports=stake_account.active_stake_lamports or 0,
-        validator_total_active_stake_lamports=validator_total_active_stake_lamports,
+        validator_total_active_stake_lamports=context.validator_total_active_stake_lamports,
         mev_bps_back_used=None,
         block_rewards_bps_back_used=None,
         gross_mev_reward_lamports=0,
@@ -42,21 +49,21 @@ def _build_error_reward(
 
 def _build_calculated_reward(
     *,
-    validator_identity_pubkey: str,
-    epoch: int,
     stake_account: StakeAccount,
-    validator_total_active_stake_lamports: int,
-    epoch_context: EpochRewardContext,
     policy: RewardPolicy,
+    context: RewardBuildContext,
 ) -> Reward:
+    if context.epoch_context is None:
+        raise ValueError("Epoch reward context is required for calculated rewards")
+
     active_stake_lamports = stake_account.active_stake_lamports or 0
 
     gross_mev_reward_lamports = (
-        epoch_context.mev_revenue_lamports * active_stake_lamports
-    ) // validator_total_active_stake_lamports
+        context.epoch_context.mev_revenue_lamports * active_stake_lamports
+    ) // context.validator_total_active_stake_lamports
     gross_block_reward_lamports = (
-        epoch_context.block_rewards_lamports * active_stake_lamports
-    ) // validator_total_active_stake_lamports
+        context.epoch_context.block_rewards_lamports * active_stake_lamports
+    ) // context.validator_total_active_stake_lamports
 
     payable_mev_reward_lamports = (
         gross_mev_reward_lamports * policy.mev_bps_back
@@ -66,16 +73,16 @@ def _build_calculated_reward(
     ) // 10000
 
     return Reward(
-        validator_identity_pubkey=validator_identity_pubkey,
+        validator_identity_pubkey=context.validator_identity_pubkey,
         cluster=settings.app_cluster,
-        epoch=epoch,
+        epoch=context.epoch,
         stake_account_id=stake_account.id,
         policy_id_used=policy.id,
         staker_withdrawer_pubkey=stake_account.withdrawer_authority,
         stake_pubkey=stake_account.stake_pubkey,
         withdrawer_authority=stake_account.withdrawer_authority,
         active_stake_lamports=active_stake_lamports,
-        validator_total_active_stake_lamports=validator_total_active_stake_lamports,
+        validator_total_active_stake_lamports=context.validator_total_active_stake_lamports,
         mev_bps_back_used=policy.mev_bps_back,
         block_rewards_bps_back_used=policy.block_rewards_bps_back,
         gross_mev_reward_lamports=gross_mev_reward_lamports,
@@ -247,6 +254,17 @@ def calculate_rewards_for_epoch(
     )
 
     rewards_to_create: list[Reward] = []
+    reward_context = RewardBuildContext(
+        validator_identity_pubkey=validator_identity_pubkey,
+        epoch=epoch,
+        validator_total_active_stake_lamports=validator_total_active_stake_lamports,
+        epoch_context=epoch_context,
+    )
+    error_context = RewardBuildContext(
+        validator_identity_pubkey=validator_identity_pubkey,
+        epoch=epoch,
+        validator_total_active_stake_lamports=validator_total_active_stake_lamports,
+    )
 
     for stake_account in stake_accounts:
         selected_policy = select_policy_for_staker(
@@ -257,19 +275,14 @@ def calculate_rewards_for_epoch(
 
         if selected_policy is None:
             reward = _build_error_reward(
-                validator_identity_pubkey=validator_identity_pubkey,
-                epoch=epoch,
                 stake_account=stake_account,
-                validator_total_active_stake_lamports=validator_total_active_stake_lamports,
+                context=error_context,
             )
         else:
             reward = _build_calculated_reward(
-                validator_identity_pubkey=validator_identity_pubkey,
-                epoch=epoch,
                 stake_account=stake_account,
-                validator_total_active_stake_lamports=validator_total_active_stake_lamports,
-                epoch_context=epoch_context,
                 policy=selected_policy,
+                context=reward_context,
             )
 
         rewards_to_create.append(reward)

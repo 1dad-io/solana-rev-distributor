@@ -2,6 +2,7 @@ import hashlib
 import json
 import shutil
 import subprocess
+from dataclasses import dataclass
 from pathlib import Path
 
 from sqlalchemy.orm import Session
@@ -9,6 +10,15 @@ from sqlalchemy.orm import Session
 from app.config import settings
 from app.models.stake_account import StakeAccount
 from app.models.stake_snapshot import StakeSnapshot
+
+
+@dataclass(frozen=True)
+class StakeSnapshotValues:
+    validator_identity_pubkey: str
+    epoch: int
+    source_path: Path
+    raw_text: str
+    records_count: int
 
 
 def _sha256_text(text: str) -> str:
@@ -111,19 +121,15 @@ def _delete_existing_snapshot(
 def _create_snapshot(
     db: Session,
     *,
-    validator_identity_pubkey: str,
-    epoch: int,
-    source_path: Path,
-    raw_text: str,
-    records_count: int,
+    values: StakeSnapshotValues,
 ) -> StakeSnapshot:
     snapshot = StakeSnapshot(
-        validator_identity_pubkey=validator_identity_pubkey,
+        validator_identity_pubkey=values.validator_identity_pubkey,
         cluster=settings.app_cluster,
-        epoch=epoch,
-        source_path=str(source_path),
-        source_hash=_sha256_text(raw_text),
-        records_count=records_count,
+        epoch=values.epoch,
+        source_path=str(values.source_path),
+        source_hash=_sha256_text(values.raw_text),
+        records_count=values.records_count,
     )
     db.add(snapshot)
     db.commit()
@@ -160,6 +166,7 @@ def _create_stake_accounts(
     db.commit()
 
 
+# pylint: disable=too-many-arguments
 def import_stake_snapshot(
     db: Session,
     validator_identity_pubkey: str,
@@ -186,14 +193,14 @@ def import_stake_snapshot(
             snapshot_id=existing_snapshot.id,
         )
 
-    snapshot = _create_snapshot(
-        db,
+    values = StakeSnapshotValues(
         validator_identity_pubkey=validator_identity_pubkey,
         epoch=epoch,
         source_path=source_path,
         raw_text=raw_text,
         records_count=len(payload),
     )
+    snapshot = _create_snapshot(db, values=values)
 
     _create_stake_accounts(
         db,

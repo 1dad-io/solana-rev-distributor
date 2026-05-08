@@ -1,5 +1,6 @@
 import hashlib
 import json
+from dataclasses import dataclass
 from pathlib import Path
 
 import httpx
@@ -7,6 +8,18 @@ from sqlalchemy.orm import Session
 
 from app.config import settings
 from app.models.epoch_reward_context import EpochRewardContext
+
+
+@dataclass(frozen=True)
+class EpochRewardContextValues:
+    validator_identity_pubkey: str
+    epoch: int
+    mev_revenue_lamports: int
+    mev_commission_bps: int
+    block_rewards_lamports: int
+    uptime_bps: int
+    source_path: Path
+    raw_text: str
 
 
 def _sha256_text(text: str) -> str:
@@ -112,25 +125,18 @@ def _delete_existing_epoch_reward_context(
 def _create_epoch_reward_context(
     db: Session,
     *,
-    validator_identity_pubkey: str,
-    epoch: int,
-    mev_revenue_lamports: int,
-    mev_commission_bps: int,
-    block_rewards_lamports: int,
-    uptime_bps: int,
-    source_path: Path,
-    raw_text: str,
+    values: EpochRewardContextValues,
 ) -> EpochRewardContext:
     context = EpochRewardContext(
-        validator_identity_pubkey=validator_identity_pubkey,
+        validator_identity_pubkey=values.validator_identity_pubkey,
         cluster=settings.app_cluster,
-        epoch=epoch,
-        mev_revenue_lamports=mev_revenue_lamports,
-        mev_commission_bps=mev_commission_bps,
-        block_rewards_lamports=block_rewards_lamports,
-        uptime_bps=uptime_bps,
-        source_path=str(source_path),
-        source_hash=_sha256_text(raw_text),
+        epoch=values.epoch,
+        mev_revenue_lamports=values.mev_revenue_lamports,
+        mev_commission_bps=values.mev_commission_bps,
+        block_rewards_lamports=values.block_rewards_lamports,
+        uptime_bps=values.uptime_bps,
+        source_path=str(values.source_path),
+        source_hash=_sha256_text(values.raw_text),
     )
 
     db.add(context)
@@ -139,6 +145,7 @@ def _create_epoch_reward_context(
     return context
 
 
+# pylint: disable=too-many-arguments,too-many-positional-arguments
 def import_epoch_reward_context(
     db: Session,
     validator_identity_pubkey: str,
@@ -174,8 +181,7 @@ def import_epoch_reward_context(
             context_id=existing_context.id,
         )
 
-    return _create_epoch_reward_context(
-        db,
+    values = EpochRewardContextValues(
         validator_identity_pubkey=validator_identity_pubkey,
         epoch=epoch,
         mev_revenue_lamports=mev_revenue_lamports,
@@ -185,3 +191,4 @@ def import_epoch_reward_context(
         source_path=source_path,
         raw_text=raw_text,
     )
+    return _create_epoch_reward_context(db, values=values)
