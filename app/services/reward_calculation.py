@@ -8,53 +8,7 @@ from app.models.reward import Reward
 from app.models.reward_policy import RewardPolicy
 from app.models.stake_account import StakeAccount
 from app.models.stake_snapshot import StakeSnapshot
-
-
-def _policy_matches_epoch(policy: RewardPolicy, epoch: int) -> bool:
-    if policy.valid_from_epoch is not None and epoch < policy.valid_from_epoch:
-        return False
-    if policy.valid_to_epoch is not None and epoch > policy.valid_to_epoch:
-        return False
-    return True
-
-
-def _sort_policies_by_recency(policies: list[RewardPolicy]) -> list[RewardPolicy]:
-    return sorted(
-        policies,
-        key=lambda policy: (
-            policy.updated_at or datetime.min.replace(tzinfo=timezone.utc),
-            policy.id,
-        ),
-        reverse=True,
-    )
-
-
-def _select_policy_for_staker(
-    policies: list[RewardPolicy],
-    *,
-    withdrawer_authority: str | None,
-    epoch: int,
-) -> RewardPolicy | None:
-    matching_policies = [
-        policy
-        for policy in policies
-        if policy.is_active and _policy_matches_epoch(policy, epoch)
-    ]
-
-    individual_policies = [
-        policy
-        for policy in matching_policies
-        if not policy.is_default
-        and policy.staker_withdrawer_pubkey == withdrawer_authority
-    ]
-    if individual_policies:
-        return _sort_policies_by_recency(individual_policies)[0]
-
-    default_policies = [policy for policy in matching_policies if policy.is_default]
-    if default_policies:
-        return _sort_policies_by_recency(default_policies)[0]
-
-    return None
+from app.services.policy import select_policy_for_staker
 
 
 def _build_error_reward(
@@ -137,14 +91,13 @@ def _build_calculated_reward(
     )
 
 
-def calculate_rewards_for_epoch(
+def _get_existing_rewards(
     db: Session,
     *,
     validator_identity_pubkey: str,
     epoch: int,
-    force_recalculate: bool = False,
 ) -> list[Reward]:
-    existing_rewards = (
+    return (
         db.query(Reward)
         .filter(Reward.validator_identity_pubkey == validator_identity_pubkey)
         .filter(Reward.cluster == settings.app_cluster)
@@ -152,19 +105,30 @@ def calculate_rewards_for_epoch(
         .order_by(Reward.id.asc())
         .all()
     )
-    if existing_rewards and not force_recalculate:
-        return existing_rewards
 
-    if existing_rewards and force_recalculate:
-        (
-            db.query(Reward)
-            .filter(Reward.validator_identity_pubkey == validator_identity_pubkey)
-            .filter(Reward.cluster == settings.app_cluster)
-            .filter(Reward.epoch == epoch)
-            .delete()
-        )
-        db.commit()
 
+def _delete_existing_rewards(
+    db: Session,
+    *,
+    validator_identity_pubkey: str,
+    epoch: int,
+) -> None:
+    (
+        db.query(Reward)
+        .filter(Reward.validator_identity_pubkey == validator_identity_pubkey)
+        .filter(Reward.cluster == settings.app_cluster)
+        .filter(Reward.epoch == epoch)
+        .delete()
+    )
+    db.commit()
+
+
+def _get_stake_snapshot(
+    db: Session,
+    *,
+    validator_identity_pubkey: str,
+    epoch: int,
+) -> StakeSnapshot:
     snapshot = (
         db.query(StakeSnapshot)
         .filter(StakeSnapshot.validator_identity_pubkey == validator_identity_pubkey)
@@ -174,7 +138,15 @@ def calculate_rewards_for_epoch(
     )
     if snapshot is None:
         raise ValueError("Stake snapshot not found")
+    return snapshot
 
+
+def _get_epoch_reward_context(
+    db: Session,
+    *,
+    validator_identity_pubkey: str,
+    epoch: int,
+) -> EpochRewardContext:
     epoch_context = (
         db.query(EpochRewardContext)
         .filter(EpochRewardContext.validator_identity_pubkey == validator_identity_pubkey)
@@ -184,10 +156,17 @@ def calculate_rewards_for_epoch(
     )
     if epoch_context is None:
         raise ValueError("Epoch reward context not found")
+    return epoch_context
 
+
+def _get_active_stake_accounts(
+    db: Session,
+    *,
+    snapshot_id: int,
+) -> list[StakeAccount]:
     stake_accounts = (
         db.query(StakeAccount)
-        .filter(StakeAccount.snapshot_id == snapshot.id)
+        .filter(StakeAccount.snapshot_id == snapshot_id)
         .filter(StakeAccount.active_stake_lamports.is_not(None))
         .filter(StakeAccount.active_stake_lamports > 0)
         .order_by(StakeAccount.id.asc())
@@ -195,24 +174,82 @@ def calculate_rewards_for_epoch(
     )
     if not stake_accounts:
         raise ValueError("No active stake accounts found in snapshot")
+    return stake_accounts
 
-    policies = (
+
+def _get_reward_policies(
+    db: Session,
+    *,
+    validator_identity_pubkey: str,
+) -> list[RewardPolicy]:
+    return (
         db.query(RewardPolicy)
         .filter(RewardPolicy.validator_identity_pubkey == validator_identity_pubkey)
         .filter(RewardPolicy.cluster == settings.app_cluster)
         .all()
     )
 
+
+def _get_validator_total_active_stake_lamports(
+    stake_accounts: list[StakeAccount],
+) -> int:
     validator_total_active_stake_lamports = sum(
         stake_account.active_stake_lamports or 0 for stake_account in stake_accounts
     )
     if validator_total_active_stake_lamports <= 0:
         raise ValueError("Validator total active stake must be greater than zero")
+    return validator_total_active_stake_lamports
+
+
+def calculate_rewards_for_epoch(
+    db: Session,
+    *,
+    validator_identity_pubkey: str,
+    epoch: int,
+    force_recalculate: bool = False,
+) -> list[Reward]:
+    existing_rewards = _get_existing_rewards(
+        db,
+        validator_identity_pubkey=validator_identity_pubkey,
+        epoch=epoch,
+    )
+    if existing_rewards and not force_recalculate:
+        return existing_rewards
+
+    if existing_rewards and force_recalculate:
+        _delete_existing_rewards(
+            db,
+            validator_identity_pubkey=validator_identity_pubkey,
+            epoch=epoch,
+        )
+
+    snapshot = _get_stake_snapshot(
+        db,
+        validator_identity_pubkey=validator_identity_pubkey,
+        epoch=epoch,
+    )
+    epoch_context = _get_epoch_reward_context(
+        db,
+        validator_identity_pubkey=validator_identity_pubkey,
+        epoch=epoch,
+    )
+    stake_accounts = _get_active_stake_accounts(
+        db,
+        snapshot_id=snapshot.id,
+    )
+    policies = _get_reward_policies(
+        db,
+        validator_identity_pubkey=validator_identity_pubkey,
+    )
+
+    validator_total_active_stake_lamports = _get_validator_total_active_stake_lamports(
+        stake_accounts
+    )
 
     rewards_to_create: list[Reward] = []
 
     for stake_account in stake_accounts:
-        selected_policy = _select_policy_for_staker(
+        selected_policy = select_policy_for_staker(
             policies,
             withdrawer_authority=stake_account.withdrawer_authority,
             epoch=epoch,
