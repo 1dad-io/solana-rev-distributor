@@ -15,7 +15,7 @@ from app.schemas.policy import (
     RewardPolicyRead,
     RewardPolicyUpdate,
 )
-from app.services.policy_service import find_duplicate_policy
+from app.services.policy import find_duplicate_policy
 
 router = APIRouter(tags=["policies"])
 

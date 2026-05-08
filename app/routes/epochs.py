@@ -14,8 +14,8 @@ from app.models.epoch_reward_context import EpochRewardContext
 from app.models.user import User
 from app.models.validator import Validator
 from app.schemas.epoch import EpochImportRequest, EpochRewardContextRead
-from app.services.epoch_import_service import import_epoch_reward_context
-from app.services.epoch_service import resolve_epoch_for_username
+from app.services.epoch_import import import_epoch_reward_context
+from app.services.epoch import resolve_epoch_for_username
 
 router = APIRouter(prefix="/validators/me/epochs", tags=["epochs"])
 

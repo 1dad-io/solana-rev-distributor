@@ -6,9 +6,9 @@ from app.models.reward_policy import RewardPolicy
 from app.models.user import User
 from app.models.validator import Validator
 from app.security import hash_password
-from app.services.epoch_import_service import import_epoch_reward_context
-from app.services.reward_calculation_service import calculate_rewards_for_epoch
-from app.services.stake_import_service import import_stake_snapshot
+from app.services.epoch_import import import_epoch_reward_context
+from app.services.reward_calculation import calculate_rewards_for_epoch
+from app.services.stake_import import import_stake_snapshot
 from tests.conftest import (
     DEMO_EPOCH,
     DEMO_STAKER_ALIAS,

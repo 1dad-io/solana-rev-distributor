@@ -14,8 +14,8 @@ from app.models.stake_snapshot import StakeSnapshot
 from app.models.user import User
 from app.models.validator import Validator
 from app.schemas.stake import StakeAccountRead, StakeImportRequest, StakeSnapshotRead
-from app.services.epoch_service import resolve_epoch_for_username
-from app.services.stake_import_service import import_stake_snapshot
+from app.services.epoch import resolve_epoch_for_username
+from app.services.stake_import import import_stake_snapshot
 
 router = APIRouter(prefix="/validators/me/stakes", tags=["stakes"])
 

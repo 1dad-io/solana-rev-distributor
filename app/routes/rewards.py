@@ -14,8 +14,8 @@ from app.dependencies import (
 from app.models.reward import Reward
 from app.models.user import User
 from app.schemas.reward import RewardCalculationRequest, RewardRead, StakerStatsRead
-from app.services.epoch_service import resolve_epoch_for_username
-from app.services.reward_calculation_service import calculate_rewards_for_epoch
+from app.services.epoch import resolve_epoch_for_username
+from app.services.reward_calculation import calculate_rewards_for_epoch
 
 router = APIRouter(tags=["rewards"])
 

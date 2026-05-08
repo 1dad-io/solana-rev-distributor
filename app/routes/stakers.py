@@ -6,7 +6,7 @@ from app.db import get_db
 from app.dependencies import require_staker
 from app.models.user import User
 from app.schemas.user import StakerMeRead, StakerMeUpdate
-from app.services.profile_service import apply_self_profile_updates, save_user_profile
+from app.services.profile import apply_self_profile_updates, save_user_profile
 
 router = APIRouter(prefix="/stakers", tags=["stakers"])
 

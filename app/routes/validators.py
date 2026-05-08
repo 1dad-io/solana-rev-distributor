@@ -9,7 +9,7 @@ from app.models.user import User
 from app.models.validator import Validator
 from app.schemas.user import ValidatorMeRead, ValidatorMeUpdate
 from app.schemas.validator import ValidatorCreate, ValidatorRead
-from app.services.profile_service import apply_self_profile_updates, save_user_profile
+from app.services.profile import apply_self_profile_updates, save_user_profile
 
 router = APIRouter(prefix="/validators", tags=["validators"])
 
