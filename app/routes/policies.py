@@ -5,11 +5,10 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from app.config import settings
 from app.db import get_db
 from app.dependencies import (
+    get_current_active_validator_identity,
     get_current_validator_identity,
-    require_active_validator,
 )
 from app.models.reward_policy import RewardPolicy
-from app.models.user import User
 from app.schemas.examples import POLICY_REQUEST_EXAMPLES
 from app.schemas.policy import (
     RewardPolicyCreate,
@@ -59,15 +58,10 @@ router = APIRouter(tags=["policies"])
 def create_policy(
     payload: RewardPolicyCreate,
     db: Session = Depends(get_db),
-    current_user: User = Depends(require_active_validator),
+    validator_identity_pubkey: str = Depends(
+        get_current_active_validator_identity
+    ),
 ) -> RewardPolicy:
-    validator_identity_pubkey = current_user.validator_identity_pubkey
-    if not validator_identity_pubkey:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Validator profile not found",
-        )
-
     duplicate_policy = find_duplicate_policy(
         db,
         validator_identity_pubkey=validator_identity_pubkey,
@@ -166,15 +160,10 @@ def update_policy(
     policy_id: int,
     payload: RewardPolicyUpdate,
     db: Session = Depends(get_db),
-    current_user: User = Depends(require_active_validator),
+    validator_identity_pubkey: str = Depends(
+        get_current_active_validator_identity
+    ),
 ) -> RewardPolicy:
-    validator_identity_pubkey = current_user.validator_identity_pubkey
-    if not validator_identity_pubkey:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Validator profile not found",
-        )
-
     policy = (
         db.query(RewardPolicy)
         .filter(RewardPolicy.id == policy_id)
