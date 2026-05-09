@@ -20,6 +20,14 @@ class RewardBuildContext:
     epoch_context: EpochRewardContext | None = None
 
 
+@dataclass(frozen=True)
+class RewardCalculationInputs:
+    stake_accounts: list[StakeAccount]
+    policies: list[RewardPolicy]
+    calculated_context: RewardBuildContext
+    error_context: RewardBuildContext
+
+
 def _build_error_reward(
     *,
     stake_account: StakeAccount,
@@ -208,6 +216,112 @@ def _get_validator_total_active_stake_lamports(
     return validator_total_active_stake_lamports
 
 
+def _build_reward_contexts(
+    *,
+    validator_identity_pubkey: str,
+    epoch: int,
+    epoch_context: EpochRewardContext,
+    stake_accounts: list[StakeAccount],
+) -> tuple[RewardBuildContext, RewardBuildContext]:
+    validator_total_active_stake_lamports = _get_validator_total_active_stake_lamports(
+        stake_accounts
+    )
+
+    calculated_context = RewardBuildContext(
+        validator_identity_pubkey=validator_identity_pubkey,
+        epoch=epoch,
+        validator_total_active_stake_lamports=validator_total_active_stake_lamports,
+        epoch_context=epoch_context,
+    )
+    error_context = RewardBuildContext(
+        validator_identity_pubkey=validator_identity_pubkey,
+        epoch=epoch,
+        validator_total_active_stake_lamports=validator_total_active_stake_lamports,
+    )
+
+    return calculated_context, error_context
+
+
+def _load_reward_calculation_inputs(
+    db: Session,
+    *,
+    validator_identity_pubkey: str,
+    epoch: int,
+) -> RewardCalculationInputs:
+    snapshot = _get_stake_snapshot(
+        db,
+        validator_identity_pubkey=validator_identity_pubkey,
+        epoch=epoch,
+    )
+    epoch_context = _get_epoch_reward_context(
+        db,
+        validator_identity_pubkey=validator_identity_pubkey,
+        epoch=epoch,
+    )
+    stake_accounts = _get_active_stake_accounts(
+        db,
+        snapshot_id=snapshot.id,
+    )
+    policies = _get_reward_policies(
+        db,
+        validator_identity_pubkey=validator_identity_pubkey,
+    )
+    calculated_context, error_context = _build_reward_contexts(
+        validator_identity_pubkey=validator_identity_pubkey,
+        epoch=epoch,
+        epoch_context=epoch_context,
+        stake_accounts=stake_accounts,
+    )
+
+    return RewardCalculationInputs(
+        stake_accounts=stake_accounts,
+        policies=policies,
+        calculated_context=calculated_context,
+        error_context=error_context,
+    )
+
+
+def _build_reward_for_stake_account(
+    *,
+    stake_account: StakeAccount,
+    policies: list[RewardPolicy],
+    calculated_context: RewardBuildContext,
+    error_context: RewardBuildContext,
+) -> Reward:
+    selected_policy = select_policy_for_staker(
+        policies,
+        withdrawer_authority=stake_account.withdrawer_authority,
+        epoch=calculated_context.epoch,
+    )
+
+    if selected_policy is None:
+        return _build_error_reward(
+            stake_account=stake_account,
+            context=error_context,
+        )
+
+    return _build_calculated_reward(
+        stake_account=stake_account,
+        policy=selected_policy,
+        context=calculated_context,
+    )
+
+
+def _build_rewards(
+    *,
+    inputs: RewardCalculationInputs,
+) -> list[Reward]:
+    return [
+        _build_reward_for_stake_account(
+            stake_account=stake_account,
+            policies=inputs.policies,
+            calculated_context=inputs.calculated_context,
+            error_context=inputs.error_context,
+        )
+        for stake_account in inputs.stake_accounts
+    ]
+
+
 def calculate_rewards_for_epoch(
     db: Session,
     *,
@@ -230,62 +344,12 @@ def calculate_rewards_for_epoch(
             epoch=epoch,
         )
 
-    snapshot = _get_stake_snapshot(
+    inputs = _load_reward_calculation_inputs(
         db,
         validator_identity_pubkey=validator_identity_pubkey,
         epoch=epoch,
     )
-    epoch_context = _get_epoch_reward_context(
-        db,
-        validator_identity_pubkey=validator_identity_pubkey,
-        epoch=epoch,
-    )
-    stake_accounts = _get_active_stake_accounts(
-        db,
-        snapshot_id=snapshot.id,
-    )
-    policies = _get_reward_policies(
-        db,
-        validator_identity_pubkey=validator_identity_pubkey,
-    )
-
-    validator_total_active_stake_lamports = _get_validator_total_active_stake_lamports(
-        stake_accounts
-    )
-
-    rewards_to_create: list[Reward] = []
-    reward_context = RewardBuildContext(
-        validator_identity_pubkey=validator_identity_pubkey,
-        epoch=epoch,
-        validator_total_active_stake_lamports=validator_total_active_stake_lamports,
-        epoch_context=epoch_context,
-    )
-    error_context = RewardBuildContext(
-        validator_identity_pubkey=validator_identity_pubkey,
-        epoch=epoch,
-        validator_total_active_stake_lamports=validator_total_active_stake_lamports,
-    )
-
-    for stake_account in stake_accounts:
-        selected_policy = select_policy_for_staker(
-            policies,
-            withdrawer_authority=stake_account.withdrawer_authority,
-            epoch=epoch,
-        )
-
-        if selected_policy is None:
-            reward = _build_error_reward(
-                stake_account=stake_account,
-                context=error_context,
-            )
-        else:
-            reward = _build_calculated_reward(
-                stake_account=stake_account,
-                policy=selected_policy,
-                context=reward_context,
-            )
-
-        rewards_to_create.append(reward)
+    rewards_to_create = _build_rewards(inputs=inputs)
 
     db.add_all(rewards_to_create)
     db.commit()
