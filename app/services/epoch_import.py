@@ -1,6 +1,5 @@
 import hashlib
 import json
-from dataclasses import dataclass
 from pathlib import Path
 
 import httpx
@@ -8,18 +7,6 @@ from sqlalchemy.orm import Session
 
 from app.config import settings
 from app.models.epoch_reward_context import EpochRewardContext
-
-
-@dataclass(frozen=True)
-class EpochRewardContextValues:
-    validator_identity_pubkey: str
-    epoch: int
-    mev_revenue_lamports: int
-    mev_commission_bps: int
-    block_rewards_lamports: int
-    uptime_bps: int
-    source_path: Path
-    raw_text: str
 
 
 def _sha256_text(text: str) -> str:
@@ -41,8 +28,14 @@ def _extract_mev_fields(
             for item in rewards:
                 if not isinstance(item, dict):
                     continue
-                if item.get("vote_account") == vote_account_pubkey and item.get("epoch") == epoch:
-                    return int(item.get("mev_revenue") or 0), int(item.get("mev_commission") or 0)
+                if (
+                    item.get("vote_account") == vote_account_pubkey
+                    and item.get("epoch") == epoch
+                ):
+                    return (
+                        int(item.get("mev_revenue") or 0),
+                        int(item.get("mev_commission") or 0),
+                    )
 
         mev_revenue = payload.get("mev_revenue_lamports")
         mev_commission_bps = payload.get("mev_commission_bps")
@@ -106,7 +99,10 @@ def _get_existing_epoch_reward_context(
 ) -> EpochRewardContext | None:
     return (
         db.query(EpochRewardContext)
-        .filter(EpochRewardContext.validator_identity_pubkey == validator_identity_pubkey)
+        .filter(
+            EpochRewardContext.validator_identity_pubkey
+            == validator_identity_pubkey
+        )
         .filter(EpochRewardContext.cluster == settings.app_cluster)
         .filter(EpochRewardContext.epoch == epoch)
         .first()
@@ -118,27 +114,41 @@ def _delete_existing_epoch_reward_context(
     *,
     context_id: int,
 ) -> None:
-    db.query(EpochRewardContext).filter(EpochRewardContext.id == context_id).delete()
+    db.query(EpochRewardContext).filter(
+        EpochRewardContext.id == context_id
+    ).delete()
     db.commit()
+
+
+def _build_epoch_reward_context(
+    *,
+    validator_identity_pubkey: str,
+    epoch: int,
+    mev_revenue_lamports: int,
+    mev_commission_bps: int,
+    block_rewards_lamports: int,
+    uptime_bps: int,
+    source_path: Path,
+    raw_text: str,
+) -> EpochRewardContext:
+    return EpochRewardContext(
+        validator_identity_pubkey=validator_identity_pubkey,
+        cluster=settings.app_cluster,
+        epoch=epoch,
+        mev_revenue_lamports=mev_revenue_lamports,
+        mev_commission_bps=mev_commission_bps,
+        block_rewards_lamports=block_rewards_lamports,
+        uptime_bps=uptime_bps,
+        source_path=str(source_path),
+        source_hash=_sha256_text(raw_text),
+    )
 
 
 def _create_epoch_reward_context(
     db: Session,
     *,
-    values: EpochRewardContextValues,
+    context: EpochRewardContext,
 ) -> EpochRewardContext:
-    context = EpochRewardContext(
-        validator_identity_pubkey=values.validator_identity_pubkey,
-        cluster=settings.app_cluster,
-        epoch=values.epoch,
-        mev_revenue_lamports=values.mev_revenue_lamports,
-        mev_commission_bps=values.mev_commission_bps,
-        block_rewards_lamports=values.block_rewards_lamports,
-        uptime_bps=values.uptime_bps,
-        source_path=str(values.source_path),
-        source_hash=_sha256_text(values.raw_text),
-    )
-
     db.add(context)
     db.commit()
     db.refresh(context)
@@ -181,7 +191,7 @@ def import_epoch_reward_context(
             context_id=existing_context.id,
         )
 
-    values = EpochRewardContextValues(
+    context = _build_epoch_reward_context(
         validator_identity_pubkey=validator_identity_pubkey,
         epoch=epoch,
         mev_revenue_lamports=mev_revenue_lamports,
@@ -191,4 +201,4 @@ def import_epoch_reward_context(
         source_path=source_path,
         raw_text=raw_text,
     )
-    return _create_epoch_reward_context(db, values=values)
+    return _create_epoch_reward_context(db, context=context)
