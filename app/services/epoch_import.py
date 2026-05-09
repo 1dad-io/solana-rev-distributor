@@ -124,13 +124,14 @@ def _build_epoch_reward_context(
     *,
     validator_identity_pubkey: str,
     epoch: int,
-    mev_revenue_lamports: int,
-    mev_commission_bps: int,
     block_rewards_lamports: int,
     uptime_bps: int,
     source_path: Path,
     raw_text: str,
+    mev_fields: tuple[int, int],
 ) -> EpochRewardContext:
+    mev_revenue_lamports, mev_commission_bps = mev_fields
+
     return EpochRewardContext(
         validator_identity_pubkey=validator_identity_pubkey,
         cluster=settings.app_cluster,
@@ -173,8 +174,7 @@ def import_epoch_reward_context(
     )
 
     payload, raw_text = _load_rewards_payload(source_path)
-
-    mev_revenue_lamports, mev_commission_bps = _extract_mev_fields(
+    mev_fields = _extract_mev_fields(
         payload=payload,
         vote_account_pubkey=vote_account_pubkey,
         epoch=epoch,
@@ -194,11 +194,10 @@ def import_epoch_reward_context(
     context = _build_epoch_reward_context(
         validator_identity_pubkey=validator_identity_pubkey,
         epoch=epoch,
-        mev_revenue_lamports=mev_revenue_lamports,
-        mev_commission_bps=mev_commission_bps,
         block_rewards_lamports=block_rewards_lamports,
         uptime_bps=uptime_bps,
         source_path=source_path,
         raw_text=raw_text,
+        mev_fields=mev_fields,
     )
     return _create_epoch_reward_context(db, context=context)
